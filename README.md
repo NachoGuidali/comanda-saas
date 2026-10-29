@@ -289,6 +289,11 @@ pero con la impresora fallando, con el error), se le manda una prueba, se cambia
 qué imprime sin tocar la PC, se pasa a otra PC o se quita. Si en una configuración
 nadie recibe la comanda de cocina o el ticket de caja, el panel lo avisa.
 
+**Ancho del papel.** En Configuración → Impresión → "Cómo salen las comandas" se
+elige 80 mm (42 letras por renglón, lo normal) o 58 mm (32 letras, el rollo
+angosto). La comanda y el ticket se arman a esa medida, y la vista previa lo
+muestra. Es uno por sucursal: el caso de una sola impresora.
+
 Cada impresora tiene su propia clave, atada a su sucursal: no ve comandas de
 otro local ni de otro cliente. La forma vieja (archivo `.env` con la clave
 general del cliente y `SUCURSAL=`) sigue andando para Linux o Raspberry Pi.

@@ -73,7 +73,7 @@ const PLANES: [string, boolean, boolean, boolean][] = [
 
 const PREGUNTAS = [
   ['¿Tengo que instalar algo?', 'No. Funciona desde el navegador en el celular, la tablet o la PC del local. Para imprimir comandas en una impresora térmica se instala un pequeño programa en la PC del local, y lo dejamos andando nosotros.'],
-  ['¿Qué impresora necesito?', 'Cualquier térmica de 80 mm, conectada por red o por USB. Si tenés una para cocina y otra para caja, cada una recibe su ticket.'],
+  ['¿Qué impresora necesito?', 'Cualquier térmica de 80 o 58 mm, conectada por red o por USB. Si tenés una para cocina y otra para caja, cada una recibe su ticket.'],
   ['¿Cómo me llega la plata de Mercado Pago?', 'Directo a tu cuenta de Mercado Pago, no pasa por nosotros. Si cancelás un pedido que ya estaba pagado, el sistema le devuelve la plata al cliente automáticamente.'],
   ['¿Puedo seguir recibiendo pedidos por WhatsApp?', 'Sí. Los cargás desde el mostrador y siguen el mismo camino: cocina, reparto y caja. Además, cuando un cliente pide desde la web, se le abre WhatsApp con el pedido armado para escribirte.'],
   ['¿Emite factura electrónica?', 'Todavía no. Por ahora el sistema registra ventas y cobros, y la factura se sigue haciendo por tu medio habitual.'],

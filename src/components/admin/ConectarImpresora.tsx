@@ -53,7 +53,7 @@ export default function ConectarImpresora({
       </ol>
       <p className="mt-3 text-sm text-carbon-500">
         {tieneToken ? 'Este local ya tiene una clave generada. ' : ''}
-        La clave es de tu local: con ella el agente solo recibe tus comandas. Cada sucursal necesita su propio agente, porque la impresora está en la red de ese local. Sirve cualquier térmica de 80mm compatible con ESC/POS.
+        La clave es de tu local: con ella el agente solo recibe tus comandas. Cada sucursal necesita su propio agente, porque la impresora está en la red de ese local. Sirve cualquier térmica de 80 o 58mm compatible con ESC/POS (el ancho se elige en "Cómo salen las comandas").
       </p>
     </div>
   );

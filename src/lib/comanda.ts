@@ -11,13 +11,18 @@ import { nombreMesa } from './etiquetas';
  * ESC/POS (no se guarda el comando tal cual porque "letra normal" es ESC ! 0 y
  * Postgres no acepta el byte 0 en un texto):
  *
- *   \x02  doble alto     (siguen entrando 42 letras por renglón)
- *   \x04  doble alto y ancho (entran 21: se corta el renglón antes)
+ *   \x02  doble alto     (siguen entrando las mismas letras por renglón)
+ *   \x04  doble alto y ancho (entra la mitad: se corta el renglón antes)
  *   \x03  vuelve a normal
  */
 
-export const ANCHO = 42; // caracteres de una térmica de 80mm en fuente A
-const ANCHO_ENORME = 21;
+/** El ancho del rollo. Cambia cuántas letras entran por renglón. */
+export type Papel = '80' | '58';
+
+/** Letras por renglón en la fuente normal (A) de cada rollo */
+const LETRAS_POR_RENGLON: Record<Papel, number> = { '80': 42, '58': 32 };
+
+export const anchoDe = (cfg: Pick<ConfigComanda, 'papel'>) => LETRAS_POR_RENGLON[cfg.papel];
 
 export const GRANDE = '\x02';
 export const ENORME = '\x04';
@@ -26,6 +31,8 @@ export const NORMAL = '\x03';
 export type Letra = 'normal' | 'grande' | 'enorme';
 
 export type ConfigComanda = {
+  /** El mismo para cocina y caja: casi siempre es una sola impresora */
+  papel: Papel;
   cocina: {
     /** Lo que va arriba de todo: "COCINA", "PARRILLA", "HORNO" */
     titulo: string;
@@ -62,6 +69,7 @@ export type ConfigComanda = {
 };
 
 export const CONFIG_DEFECTO: ConfigComanda = {
+  papel: '80',
   cocina: {
     titulo: 'COCINA',
     letra: 'grande',
@@ -104,6 +112,7 @@ export function leerConfig(json: unknown): ConfigComanda {
   const k = (o.caja ?? {}) as Record<string, unknown>;
   const d = CONFIG_DEFECTO;
   return {
+    papel: opcion(o.papel, ['80', '58'] as const, d.papel),
     cocina: {
       titulo: texto(c.titulo, 30, d.cocina.titulo),
       letra: opcion(c.letra, LETRAS, d.cocina.letra),
@@ -135,13 +144,13 @@ export function limpio(t: string | null | undefined): string {
   return (t ?? '').replace(/[\x00-\x09\x0B-\x1F\x7F]/g, ' ');
 }
 
-function linea(char = '-') {
-  return char.repeat(ANCHO);
+function linea(ancho: number, char = '-') {
+  return char.repeat(ancho);
 }
 
-function centrar(t: string, ancho = ANCHO) {
-  const pad = Math.max(0, Math.floor((ancho - t.length) / 2));
-  return ' '.repeat(pad) + t;
+/** Centrado; si no entra en un renglón, se corta en varios, todos centrados. */
+function centrar(t: string, ancho: number): string[] {
+  return envolver(t, ancho).map((r) => ' '.repeat(Math.max(0, Math.floor((ancho - r.length) / 2))) + r);
 }
 
 /** Corta un texto en renglones de `ancho` letras, sin partir palabras si se puede. */
@@ -160,17 +169,17 @@ function envolver(t: string, ancho: number): string[] {
 }
 
 /** Uno o más renglones en el tamaño pedido, cada uno con su marcador. */
-function enLetra(t: string, letra: Letra, sangria = ''): string[] {
-  const ancho = letra === 'enorme' ? ANCHO_ENORME : ANCHO;
+function enLetra(t: string, letra: Letra, ancho: number, sangria = ''): string[] {
+  const letras = letra === 'enorme' ? Math.floor(ancho / 2) : ancho;
   const s = letra === 'enorme' ? sangria.slice(0, 2) : sangria;
-  const renglones = envolver(t, ancho - s.length).map((r) => s + r);
+  const renglones = envolver(t, letras - s.length).map((r) => s + r);
   if (letra === 'normal') return renglones;
   return renglones.map((r) => `${letra === 'grande' ? GRANDE : ENORME}${r}${NORMAL}`);
 }
 
 /** Nombre a la izquierda, precio a la derecha, sin que se pisen. */
-function fila(izq: string, der: string) {
-  const espacio = ANCHO - der.length;
+function fila(izq: string, der: string, ancho: number) {
+  const espacio = ancho - der.length;
   const renglones = envolver(izq, espacio - 1);
   const ultimo = renglones.pop()!;
   return [...renglones, ultimo + ' '.repeat(Math.max(1, espacio - ultimo.length)) + der].join('\n');
@@ -258,59 +267,60 @@ export function comandaCocina(pedido: PedidoImpresion, local: string, cfg: Confi
   const aparte = c.bebidas === 'aparte' ? bebidas : [];
   if (comida.length + aparte.length === 0) return null;
 
+  const A = anchoDe(cfg);
   const L: string[] = [];
   const titulo = (c.titulo || 'COCINA').toUpperCase();
-  L.push(centrar(agregado ? `*** ${titulo} - AGREGADO ***` : `*** ${titulo} ***`));
-  L.push(centrar(local));
-  L.push(linea('='));
-  L.push(...enLetra(`PEDIDO ${o.code}`, 'grande'));
+  L.push(...centrar(agregado ? `*** ${titulo} - AGREGADO ***` : `*** ${titulo} ***`, A));
+  L.push(...centrar(local, A));
+  L.push(linea(A, '='));
+  L.push(...enLetra(`PEDIDO ${o.code}`, 'grande', A));
   const tipo = `${TIPO[o.type] ?? o.type}${o.table ? ` - ${nombreMesa(o.table.name)}` : ''}`;
   if (c.destacarTipo) {
-    L.push(...enLetra(o.type === 'DELIVERY' ? '>> ENVIO <<' : tipo, 'enorme'));
-    if (o.type === 'DELIVERY') L.push(...enLetra(tipo, 'normal'));
+    L.push(...enLetra(o.type === 'DELIVERY' ? '>> ENVIO <<' : tipo, 'enorme', A));
+    if (o.type === 'DELIVERY') L.push(...enLetra(tipo, 'normal', A));
   } else {
-    L.push(...enLetra(tipo, 'grande'));
+    L.push(...enLetra(tipo, 'grande', A));
   }
   if (o.type === 'SALON' && o.guests) L.push(`${o.guests} ${o.guests === 1 ? 'persona' : 'personas'}`);
   if (c.hora) L.push(fechaHora(agregado ? new Date() : o.createdAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }));
-  if (c.cliente && o.customerName) L.push(...enLetra(`Cliente: ${o.customerName}`, 'normal'));
+  if (c.cliente && o.customerName) L.push(...enLetra(`Cliente: ${o.customerName}`, 'normal', A));
   if (c.direccion && o.type === 'DELIVERY' && o.address) {
-    L.push(...enLetra(o.address, 'normal'));
-    if (o.addressNotes) L.push(...enLetra(o.addressNotes, 'normal'));
+    L.push(...enLetra(o.address, 'normal', A));
+    if (o.addressNotes) L.push(...enLetra(o.addressNotes, 'normal', A));
   }
   if (c.avisarBebidas && bebidas.length > 0) {
-    L.push(linea());
-    L.push(...enLetra('LLEVA BEBIDA', 'enorme'));
+    L.push(linea(A));
+    L.push(...enLetra('LLEVA BEBIDA', 'enorme', A));
   }
-  L.push(linea('='));
+  L.push(linea(A, '='));
 
   const renglonItem = (it: PedidoImpresion['items'][number]) => {
     L.push('');
-    L.push(...enLetra(`${it.quantity} x ${it.name.toUpperCase()}${it.variantName ? ` (${it.variantName})` : ''}`, c.letra));
+    L.push(...enLetra(`${it.quantity} x ${it.name.toUpperCase()}${it.variantName ? ` (${it.variantName})` : ''}`, c.letra, A));
     const chica: Letra = c.letra === 'enorme' ? 'grande' : c.letra;
-    for (const a of it.addons) L.push(...enLetra(`+ ${a.name}`, chica, '    '));
-    if (it.notes) L.push(...enLetra(`>> ${it.notes}`, chica, '    '));
+    for (const a of it.addons) L.push(...enLetra(`+ ${a.name}`, chica, A, '    '));
+    if (it.notes) L.push(...enLetra(`>> ${it.notes}`, chica, A, '    '));
   };
   comida.forEach(renglonItem);
   if (aparte.length) {
     L.push('');
-    L.push(linea());
-    L.push(...enLetra('BEBIDAS', c.letra === 'normal' ? 'grande' : c.letra));
+    L.push(linea(A));
+    L.push(...enLetra('BEBIDAS', c.letra === 'normal' ? 'grande' : c.letra, A));
     aparte.forEach(renglonItem);
   }
 
   if (o.notes && !agregado) {
     L.push('');
-    L.push(linea());
-    L.push(...enLetra(`NOTA: ${o.notes}`, c.letra === 'enorme' ? 'grande' : c.letra));
+    L.push(linea(A));
+    L.push(...enLetra(`NOTA: ${o.notes}`, c.letra === 'enorme' ? 'grande' : c.letra, A));
   }
   if (c.contarProductos) {
     const n = [...comida, ...aparte].reduce((s, it) => s + it.quantity, 0);
     L.push('');
-    L.push(...enLetra(`TOTAL: ${n} ${n === 1 ? 'producto' : 'productos'}`, 'grande'));
+    L.push(...enLetra(`TOTAL: ${n} ${n === 1 ? 'producto' : 'productos'}`, 'grande', A));
   }
   L.push('');
-  L.push(linea('='));
+  L.push(linea(A, '='));
   return L.join('\n');
 }
 
@@ -322,49 +332,50 @@ export function ticketCliente(
 ): string {
   const o = sanear(pedido);
   const k = cfg.caja;
+  const A = anchoDe(cfg);
   const L: string[] = [];
-  L.push(centrar((k.titulo || local.nombre).toUpperCase()));
-  L.push(centrar(limpio(local.direccion)));
-  L.push(linea());
-  L.push(...enLetra(`Pedido ${o.code}`, 'grande'));
+  L.push(...centrar((k.titulo || local.nombre).toUpperCase(), A));
+  L.push(...centrar(limpio(local.direccion), A));
+  L.push(linea(A));
+  L.push(...enLetra(`Pedido ${o.code}`, 'grande', A));
   L.push(fechaHora(o.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-  L.push(`${TIPO[o.type] ?? o.type}${o.table ? ` - ${nombreMesa(o.table.name)}` : ''}`);
-  L.push(linea());
-  if (o.customerName) L.push(o.customerName);
+  L.push(...envolver(`${TIPO[o.type] ?? o.type}${o.table ? ` - ${nombreMesa(o.table.name)}` : ''}`, A));
+  L.push(linea(A));
+  if (o.customerName) L.push(...envolver(o.customerName, A));
   if (o.customerPhone) L.push(o.customerPhone);
   if (o.address) {
-    L.push(...envolver(o.address, ANCHO));
-    if (o.addressNotes) L.push(...envolver(o.addressNotes, ANCHO));
+    L.push(...envolver(o.address, A));
+    if (o.addressNotes) L.push(...envolver(o.addressNotes, A));
   }
-  L.push(linea());
+  L.push(linea(A));
 
   for (const it of o.items) {
-    L.push(fila(`${it.quantity}x ${it.name}${it.variantName ? ` ${it.variantName}` : ''}`, money(it.total)));
-    for (const a of it.addons) L.push(`   + ${a.name}`);
-    if (it.notes) L.push(...envolver(it.notes, ANCHO - 3).map((r) => `   ${r}`));
+    L.push(fila(`${it.quantity}x ${it.name}${it.variantName ? ` ${it.variantName}` : ''}`, money(it.total), A));
+    for (const a of it.addons) L.push(...envolver(`+ ${a.name}`, A - 3).map((r) => `   ${r}`));
+    if (it.notes) L.push(...envolver(it.notes, A - 3).map((r) => `   ${r}`));
   }
 
-  L.push(linea());
-  L.push(fila('Subtotal', money(o.subtotal)));
-  if (o.deliveryFee > 0) L.push(fila('Envio', money(o.deliveryFee)));
-  if (o.discount > 0) L.push(fila('Descuento', `-${money(o.discount)}`));
-  if (k.letraTotal === 'enorme') L.push(...enLetra(`TOTAL ${money(o.total)}`, 'enorme'));
-  else if (k.letraTotal === 'grande') L.push(`${GRANDE}${fila('TOTAL', money(o.total))}${NORMAL}`);
-  else L.push(fila('TOTAL', money(o.total)));
-  L.push(linea());
-  L.push(`Paga con: ${PAGO[o.paymentMethod] ?? o.paymentMethod}${o.paymentStatus === 'COBRADO' ? ' (COBRADO)' : ''}`);
+  L.push(linea(A));
+  L.push(fila('Subtotal', money(o.subtotal), A));
+  if (o.deliveryFee > 0) L.push(fila('Envio', money(o.deliveryFee), A));
+  if (o.discount > 0) L.push(fila('Descuento', `-${money(o.discount)}`, A));
+  if (k.letraTotal === 'enorme') L.push(...enLetra(`TOTAL ${money(o.total)}`, 'enorme', A));
+  else if (k.letraTotal === 'grande') L.push(`${GRANDE}${fila('TOTAL', money(o.total), A)}${NORMAL}`);
+  else L.push(fila('TOTAL', money(o.total), A));
+  L.push(linea(A));
+  L.push(...envolver(`Paga con: ${PAGO[o.paymentMethod] ?? o.paymentMethod}${o.paymentStatus === 'COBRADO' ? ' (COBRADO)' : ''}`, A));
   if (o.cashAmount && o.cashAmount >= o.total) {
-    L.push(fila('Abona con', money(o.cashAmount)));
-    L.push(fila('VUELTO', money(o.cashAmount - o.total)));
+    L.push(fila('Abona con', money(o.cashAmount), A));
+    L.push(fila('VUELTO', money(o.cashAmount - o.total), A));
   }
-  if (k.alias && o.paymentMethod === 'TRANSFERENCIA' && local.alias) L.push(`Alias: ${limpio(local.alias)}`);
+  if (k.alias && o.paymentMethod === 'TRANSFERENCIA' && local.alias) L.push(...envolver(`Alias: ${limpio(local.alias)}`, A));
   if (o.notes) {
-    L.push(linea());
-    L.push(...envolver(o.notes, ANCHO));
+    L.push(linea(A));
+    L.push(...envolver(o.notes, A));
   }
   if (k.pie) {
     L.push('');
-    for (const r of envolver(k.pie, ANCHO)) L.push(centrar(r));
+    L.push(...centrar(k.pie, A));
   }
   L.push('');
   return L.join('\n');

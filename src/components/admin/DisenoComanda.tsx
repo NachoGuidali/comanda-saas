@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { guardarComanda } from '@/actions/config';
 import {
   leerConfig, comandaCocina, ticketCliente, pedidoDeEjemplo, llevaTicketCaja, esBebida,
-  GRANDE, ENORME, ANCHO, type ConfigComanda, type Letra,
+  GRANDE, ENORME, anchoDe, type ConfigComanda, type Letra,
 } from '@/lib/comanda';
 
 type Props = {
@@ -70,7 +70,20 @@ export default function DisenoComanda({ guardada, local, categorias, puedeEditar
 
       <div className="mt-5 grid gap-8 xl:grid-cols-[minmax(0,1fr)_auto]">
         <fieldset disabled={!puedeEditar} className="min-w-0 space-y-6">
-          <section className="space-y-4">
+          <section className="space-y-2">
+            <Opciones
+              titulo="Ancho del papel de la impresora"
+              valor={cfg.papel}
+              opciones={[
+                { id: '80', label: '80 mm (el más común)' },
+                { id: '58', label: '58 mm (rollo angosto)' },
+              ]}
+              onCambio={(v) => { setCfg((c) => ({ ...c, papel: v })); setEstado(null); }}
+            />
+            <p className="text-xs text-carbon-500">Medí el ancho del rollo. Si es el equivocado, los renglones se cortan por la mitad o quedan cortos.</p>
+          </section>
+
+          <section className="space-y-4 border-t border-carbon/10 pt-6">
             <h3 className="font-semibold">Comanda de cocina</h3>
             <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
               <div>
@@ -183,8 +196,8 @@ export default function DisenoComanda({ guardada, local, categorias, puedeEditar
             ))}
           </div>
           <div className="flex flex-wrap items-start gap-4">
-            <Ticket titulo={`Cocina${cfg.cocina.copias > 1 ? ` (×${cfg.cocina.copias})` : ''}`} texto={textoCocina} vacio="No sale: no hay nada para cocina." />
-            <Ticket titulo={`Caja${cfg.caja.copias > 1 ? ` (×${cfg.caja.copias})` : ''}`} texto={textoCaja} vacio={cfg.caja.imprimir === 'nunca' ? 'No se imprime.' : 'Solo sale en los envíos.'} />
+            <Ticket titulo={`Cocina${cfg.cocina.copias > 1 ? ` (×${cfg.cocina.copias})` : ''}`} texto={textoCocina} ancho={anchoDe(cfg)} vacio="No sale: no hay nada para cocina." />
+            <Ticket titulo={`Caja${cfg.caja.copias > 1 ? ` (×${cfg.caja.copias})` : ''}`} texto={textoCaja} ancho={anchoDe(cfg)} vacio={cfg.caja.imprimir === 'nunca' ? 'No se imprime.' : 'Solo sale en los envíos.'} />
           </div>
         </div>
       </div>
@@ -192,12 +205,12 @@ export default function DisenoComanda({ guardada, local, categorias, puedeEditar
   );
 }
 
-/** Dibuja el texto como sale en la térmica: 42 letras de ancho, con los tamaños. */
-function Ticket({ titulo, texto, vacio }: { titulo: string; texto: string | null; vacio: string }) {
+/** Dibuja el texto como sale en la térmica: las letras por renglón del papel, con los tamaños. */
+function Ticket({ titulo, texto, ancho, vacio }: { titulo: string; texto: string | null; ancho: number; vacio: string }) {
   return (
     <figure className="max-w-full">
       <figcaption className="mb-1 text-xs font-medium text-carbon-500">{titulo}</figcaption>
-      <div className="overflow-hidden rounded-sm bg-white px-4 py-4 font-mono text-[12px] leading-[1.35] text-black shadow-card" style={{ width: `calc(${ANCHO}ch + 2rem)`, maxWidth: '100%' }}>
+      <div className="overflow-hidden rounded-sm bg-white px-4 py-4 font-mono text-[12px] leading-[1.35] text-black shadow-card" style={{ width: `calc(${ancho}ch + 2rem)`, maxWidth: '100%' }}>
         {texto === null ? (
           <p className="py-6 text-center font-sans text-sm text-carbon-500">{vacio}</p>
         ) : (

@@ -1,7 +1,7 @@
 # Comanda Supreg · Programa de impresión
 
 Corre en la PC del local, no en el servidor. Cada dos segundos le pregunta al
-sistema si hay comandas de su impresora y las manda a la térmica (80mm ESC/POS,
+sistema si hay comandas de su impresora y las manda a la térmica (80 o 58mm ESC/POS,
 por red o USB).
 
 ## Instalación en Windows (lo normal)
