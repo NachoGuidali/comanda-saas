@@ -1,0 +1,695 @@
+{
+  "categorias": [
+    {
+      "nombre": "Pizzas Tradicionales",
+      "minutos": 20,
+      "productos": [
+        {
+          "nombre": "Muzzarella",
+          "descripcion": "Salsa, muzza y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 17000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 19000
+            }
+          ]
+        },
+        {
+          "nombre": "Muzzarella doble",
+          "descripcion": "Salsa, doble muzza y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28000
+            }
+          ]
+        },
+        {
+          "nombre": "Muzzarella y huevo",
+          "descripcion": "Salsa, muzza, huevo rallado y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 24000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 26000
+            }
+          ]
+        },
+        {
+          "nombre": "Fugazza",
+          "descripcion": "Cebolla, oliva, orégano y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 19000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 21000
+            }
+          ]
+        },
+        {
+          "nombre": "Fugarella",
+          "descripcion": "Cebolla, muzza, oliva, queso en hebras y aceitunas",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 23000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 25000
+            }
+          ]
+        },
+        {
+          "nombre": "Fugarella c/ jamón",
+          "descripcion": "Cebolla, muzza, jamón y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 25000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 27000
+            }
+          ]
+        },
+        {
+          "nombre": "Napolitana",
+          "descripcion": "Salsa, muzza, tomates, ajo, queso en hebras y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 24000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 26000
+            }
+          ]
+        },
+        {
+          "nombre": "Napolitana c/ jamón",
+          "descripcion": "Salsa, muzza, tomates, rollos de jamón, aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28000
+            }
+          ]
+        },
+        {
+          "nombre": "Muzzarella y jamón",
+          "descripcion": "Salsa, muzza, jamón y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 24000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 26000
+            }
+          ]
+        },
+        {
+          "nombre": "Jamón y morrón",
+          "descripcion": "Salsa, jamón, morrón asado y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28000
+            }
+          ]
+        },
+        {
+          "nombre": "Jamón y huevo",
+          "descripcion": "Salsa, muzza, jamón, huevo rallado y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28000
+            }
+          ]
+        },
+        {
+          "nombre": "Anchoas",
+          "descripcion": "Salsa, anchoas y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 23000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 25000
+            }
+          ]
+        },
+        {
+          "nombre": "Muzzarella y anchoas",
+          "descripcion": "Salsa, muzza, anchoas y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28000
+            }
+          ]
+        },
+        {
+          "nombre": "Calabresa",
+          "descripcion": "Salsa, muzza, calabresa y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 26500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 28500
+            }
+          ]
+        },
+        {
+          "nombre": "Palmitos",
+          "descripcion": "Salsa, muzza, palmitos, salsa golf y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 27000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 29000
+            }
+          ]
+        },
+        {
+          "nombre": "Margarita",
+          "descripcion": "Salsa, muzza, tomate, albahaca y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 24500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 26500
+            }
+          ]
+        },
+        {
+          "nombre": "Provolone",
+          "descripcion": "Salsa, muzza, provolone en cubos y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 27000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 29000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Pizzas Especiales",
+      "minutos": 20,
+      "productos": [
+        {
+          "nombre": "Roquefort c/ jamón",
+          "descripcion": "Salsa, muzza, roquefort y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 29800
+            },
+            {
+              "nombre": "Grande",
+              "precio": 31800
+            }
+          ]
+        },
+        {
+          "nombre": "Cuatro quesos",
+          "descripcion": "Salsa, muzza, provolone, roquefort, parmesano y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 30000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 32000
+            }
+          ]
+        },
+        {
+          "nombre": "Verdura",
+          "descripcion": "Salsa, muzza, espinaca, salsa blanca gratinada y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 29000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 31000
+            }
+          ]
+        },
+        {
+          "nombre": "Panceta",
+          "descripcion": "Salsa, muzza, panceta y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 28000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 30000
+            }
+          ]
+        },
+        {
+          "nombre": "Panceta y huevo",
+          "descripcion": "Salsa, muzza, panceta, huevos fritos y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 32500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 34500
+            }
+          ]
+        },
+        {
+          "nombre": "Criolla",
+          "descripcion": "Cebolla, oliva, muzzarella, panceta y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 29800
+            },
+            {
+              "nombre": "Grande",
+              "precio": 31800
+            }
+          ]
+        },
+        {
+          "nombre": "Carioca",
+          "descripcion": "Salsa, muzza, jamón, rodajas de ananá, azúcar negra y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 32500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 34500
+            }
+          ]
+        },
+        {
+          "nombre": "Provolone y verdeo",
+          "descripcion": "Salsa, muzza, provolone en cubos, verdeo y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 28000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 30000
+            }
+          ]
+        },
+        {
+          "nombre": "Provolone y jamón",
+          "descripcion": "Salsa, muzza, provolone en cubos, jamón y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 30000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 32000
+            }
+          ]
+        },
+        {
+          "nombre": "Super palmitos",
+          "descripcion": "Salsa, muzza, jamón, huevo rallado, palmitos, morrón, salsa golf y aceitunas negras",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 34000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 36000
+            }
+          ]
+        },
+        {
+          "nombre": "Rúcula y tomates",
+          "descripcion": "Salsa, muzza, tomates secos, queso en hebras y aceitunas mixtas",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 29000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 31000
+            }
+          ]
+        },
+        {
+          "nombre": "Rúcula y jamón crudo",
+          "descripcion": "Salsa, muzza, jamón crudo, queso en hebras y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 31500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 33500
+            }
+          ]
+        },
+        {
+          "nombre": "Champiñones",
+          "descripcion": "Salsa, muzza, champiñones salteados, jamón, queso en hebras y aceitunas verdes",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 32500
+            },
+            {
+              "nombre": "Grande",
+              "precio": 34500
+            }
+          ]
+        },
+        {
+          "nombre": "Pepperino",
+          "descripcion": "Salteado al wok, champiñones, puerro, panceta, cubos de tomate y aceitunas mixtas",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 34000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 36000
+            }
+          ]
+        },
+        {
+          "nombre": "Americana",
+          "descripcion": "Cebolla, muzza, panceta y huevos fritos",
+          "tamanos": [
+            {
+              "nombre": "Mediana",
+              "precio": 34000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 36000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Rellenas",
+      "minutos": 25,
+      "productos": [
+        {
+          "nombre": "Fugazzetta rellena",
+          "descripcion": "Muzza, jamón, cebolla, queso en hebras y aceitunas negras",
+          "precio": 36000
+        },
+        {
+          "nombre": "Calzone napolitano",
+          "descripcion": "Muzza, jamón cocido, cubierto de rodajas de tomate, queso rallado y ajo",
+          "precio": 34000
+        },
+        {
+          "nombre": "Calzone caprese",
+          "descripcion": "Muzza, cubos de tomate, albahaca, aceitunas descarozadas y queso rallado",
+          "precio": 34000
+        },
+        {
+          "nombre": "Calzone a las olivas",
+          "descripcion": "Muzza, jamón, cubos de tomate, huevo duro y trozos de aceitunas",
+          "precio": 36000
+        },
+        {
+          "nombre": "Rellena de la huerta",
+          "descripcion": "Muzza, salteado de wok, zapallito, berenjena, zanahoria, choclo, morrón y verdeo",
+          "precio": 0,
+          "activo": false
+        }
+      ]
+    },
+    {
+      "nombre": "Empanadas",
+      "minutos": 15,
+      "productos": [
+        {
+          "nombre": "Empanada de carne cortada a cuchillo",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de carne picante con aceitunas",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de bondiola a la cerveza",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de humita",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de pollo",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de calabresa",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de jamón y queso",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de caprese",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de cebolla y queso",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de roquefort y apio",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de panceta, muzzarella y ciruela",
+          "precio": 4000
+        },
+        {
+          "nombre": "Empanada de verdura",
+          "precio": 4000
+        },
+        {
+          "nombre": "Media docena",
+          "precio": 22000,
+          "descripcion": "Seis empanadas. Escribí los gustos en la nota del producto."
+        },
+        {
+          "nombre": "Docena",
+          "precio": 40000,
+          "descripcion": "Doce empanadas. Escribí los gustos en la nota del producto."
+        }
+      ]
+    },
+    {
+      "nombre": "Comidas",
+      "minutos": 20,
+      "productos": [
+        {
+          "nombre": "Plato del día",
+          "precio": 18000,
+          "descripcion": "Preguntanos cuál es el de hoy."
+        },
+        {
+          "nombre": "Tortilla",
+          "precio": 14000,
+          "opciones": [
+            {
+              "nombre": "De qué",
+              "min": 1,
+              "max": 1,
+              "opciones": [
+                {
+                  "nombre": "Papas",
+                  "precio": 0
+                },
+                {
+                  "nombre": "Acelga",
+                  "precio": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nombre": "Canastitas",
+          "precio": 9000,
+          "opciones": [
+            {
+              "nombre": "Sabor",
+              "min": 1,
+              "max": 1,
+              "opciones": [
+                {
+                  "nombre": "Jamón y queso",
+                  "precio": 0
+                },
+                {
+                  "nombre": "Caprese",
+                  "precio": 0
+                },
+                {
+                  "nombre": "Verdura",
+                  "precio": 0
+                },
+                {
+                  "nombre": "Pollo, puerro y champiñones",
+                  "precio": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nombre": "Mila a la napolitana c/ papas",
+          "tamanos": [
+            {
+              "nombre": "Individual",
+              "precio": 27000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 36000
+            }
+          ]
+        },
+        {
+          "nombre": "Mila a la napolitana c/ papas cheddar, bacon y verdeo",
+          "tamanos": [
+            {
+              "nombre": "Individual",
+              "precio": 29000
+            },
+            {
+              "nombre": "Grande",
+              "precio": 38000
+            }
+          ],
+          "descripcion": "Papas con cheddar, bacon y verdeo"
+        }
+      ]
+    },
+    {
+      "nombre": "Paninis",
+      "minutos": 10,
+      "productos": [
+        {
+          "nombre": "Panini de milanesa",
+          "descripcion": "Completa: jamón, queso, tomate y huevo",
+          "precio": 23000
+        },
+        {
+          "nombre": "Panini de jamón y queso",
+          "descripcion": "Jamón y queso",
+          "precio": 20000
+        },
+        {
+          "nombre": "Panini de rúcula y jamón crudo",
+          "descripcion": "Queso y tomates secos",
+          "precio": 22500
+        }
+      ]
+    },
+    {
+      "nombre": "Hamburguesas",
+      "minutos": 10,
+      "productos": [
+        {
+          "nombre": "Peppeburger 1",
+          "descripcion": "Doble carne, cheddar, bacon, pepinos",
+          "precio": 19000
+        },
+        {
+          "nombre": "Peppeburger 2",
+          "descripcion": "Doble carne, cheddar, lechuga y tomate",
+          "precio": 19000
+        },
+        {
+          "nombre": "Peppeburger 3",
+          "descripcion": "Doble carne, jamón cocido, muzza y huevo a la plancha",
+          "precio": 19000
+        },
+        {
+          "nombre": "Peppeburger 4",
+          "descripcion": "Doble carne, provoleta, rúcula y tomates frescos",
+          "precio": 19000
+        }
+      ]
+    }
+  ]
+}

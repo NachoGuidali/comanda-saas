@@ -409,6 +409,23 @@ Así sirve igual para pizzería, hamburguesería o rotisería.
 Si el producto tiene tamaños, elegir uno es obligatorio. El precio base se usa
 solo en productos sin tamaños.
 
+### Cargar una carta entera de una vez
+
+Para un cliente nuevo con la carta en Excel o en papel, se pasa a un archivo
+JSON en `prisma/cartas/` (el formato está explicado arriba de
+`prisma/importar-carta.ts`; `pepperino.json` sirve de ejemplo) y se carga:
+
+```bash
+docker compose run --rm tools npx tsx prisma/importar-carta.ts \
+  --cliente pepperino --archivo prisma/cartas/pepperino.json --reemplazar
+```
+
+Va a todas las sucursales del cliente, o a una con `--sucursal adrogue`.
+`--reemplazar` borra la carta que había; los productos que ya tienen pedidos no
+se borran, quedan ocultos. Si el archivo tiene un error (un producto sin precio,
+un grupo vacío), avisa y no carga nada. El archivo tiene que estar en el
+servidor antes del `./deploy.sh`: el contenedor `tools` lo toma al construirse.
+
 ### Precio de la mitad y mitad
 
 En Configuración → **Mitad y mitad** cada local elige cómo la cobra:
