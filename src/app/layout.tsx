@@ -20,6 +20,20 @@ const sans = Inter_Tight({
   display: 'swap',
 });
 
+/** comandasupreg.com: la presentación del producto, con los textos de supregsolutions.com/comanda */
+const PORTADA: Metadata = {
+  title: `${PRODUCTO.nombre} | Tu propio sistema de pedidos, sin comisiones`,
+  description: 'Pedidos online y gestión para pizzerías, hamburgueserías y rotiserías. El cliente pide desde la web de tu local y paga con Mercado Pago. Sin comisiones por pedido.',
+  icons: { icon: '/marca/supreg-isotipo.png' },
+  openGraph: {
+    title: `${PRODUCTO.nombre} | Tu propio sistema de pedidos, sin comisiones`,
+    description: 'Pedidos online y gestión para pizzerías, hamburgueserías y rotiserías. El cliente pide desde la web de tu local y paga con Mercado Pago. Sin comisiones por pedido.',
+    images: ['https://supregsolutions.com/static/imagenes/og-supreg.jpg'],
+    locale: 'es_AR',
+    type: 'website',
+  },
+};
+
 /**
  * El título de la web es el del cliente del dominio (Pepperino Pizza · Pedí
  * online); en el dominio de la plataforma, el del producto. Durante el build
@@ -31,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
   try {
     const t = await getTenant();
-    if (!t) return { title: PRODUCTO.nombre, description: PRODUCTO.bajada };
+    if (!t) return PORTADA;
     return {
       title: `${t.name} · Pedí online`,
       description: t.slogan || undefined,
