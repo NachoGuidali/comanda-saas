@@ -1,0 +1,21 @@
+{
+  "name": "comanda-supreg-agente-impresion",
+  "version": "2.0.0",
+  "description": "Comanda Supreg: agente que imprime las comandas en la impresora termica del local",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "exe": "pkg . --targets node22-win-x64 --no-bytecode --public-packages \"*\" --public --output ../public/descargas/ComandaSupreg-Impresora.exe"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "6.22.0"
+  },
+  "pkg": {
+    "assets": []
+  },
+  "engines": { "node": ">=18" }
+}

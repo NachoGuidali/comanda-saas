@@ -1,0 +1,13 @@
+node_modules
+.next
+.env
+data/uploads/*
+!data/uploads/.gitkeep
+next-env.d.ts
+*.tsbuildinfo
+
+# Ajustes de la PC local (abrir el puerto 3000, apagar Caddy): no van al servidor
+docker-compose.override.yml
+
+# Copias de la base del servidor
+backups/

@@ -1,0 +1,46 @@
+# Una sola instalación para todos los clientes:
+#
+#   comandasupreg.com             → la plataforma
+#   pepperino.comandasupreg.com   → la carta y el panel de Pepperino
+#   pedidos.pepperino.com.ar      → lo mismo, si Pepperino usa su dominio propio
+#
+# Los certificados HTTPS se sacan solos, de a uno, la primera vez que entra
+# alguien a cada dirección ("on demand"). Antes, Caddy le pregunta al sistema
+# si esa dirección es de un cliente real: así no se piden certificados para
+# cualquier cosa. Dar de alta un cliente no requiere tocar este archivo.
+{
+	on_demand_tls {
+		ask http://app:3000/api/tls/permitido
+	}
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# El host original (pepperino.comandasupreg.com) llega tal cual: con eso el
+	# sistema sabe de qué cliente es cada pedido
+	reverse_proxy app:3000
+
+	log {
+		output file /data/acceso.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
+
+# Lo que entra por http se manda a https
+http:// {
+	redir https://{host}{uri} permanent
+}

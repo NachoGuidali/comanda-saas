@@ -1,0 +1,111 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pizzeria
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en el archivo .env}
+      POSTGRES_DB: pizzeria
+    volumes:
+      - datos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pizzeria"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://pizzeria:${DB_PASSWORD}@db:5432/pizzeria
+      AUTH_SECRET: ${AUTH_SECRET:?Falta AUTH_SECRET en el archivo .env}
+      # Solo para clientes que todavía no generaron la clave de su agente
+      PRINT_TOKEN: ${PRINT_TOKEN:-}
+      MEDIA_DIR: /app/data/uploads
+      NODE_ENV: production
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      SAAS_DOMINIO: ${SAAS_DOMINIO:?Falta SAAS_DOMINIO en el archivo .env}
+      TENANT_POR_DEFECTO: ${TENANT_POR_DEFECTO:-}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      # Cuenta de Mercado Pago de la PLATAFORMA, para cobrar los abonos.
+      # (El pago online de cada local usa la cuenta del local, cargada en su panel.)
+      PLATAFORMA_MP_TOKEN: ${PLATAFORMA_MP_TOKEN:-}
+      PLATAFORMA_MP_WEBHOOK_SECRET: ${PLATAFORMA_MP_WEBHOOK_SECRET:-}
+      SAAS_DIAS_AVISO: ${SAAS_DIAS_AVISO:-5}
+      SAAS_DIAS_GRACIA: ${SAAS_DIAS_GRACIA:-5}
+      SAAS_SUSPENDER_VENCIDOS: ${SAAS_SUSPENDER_VENCIDOS:-true}
+      CIFRADO_CLAVE: ${CIFRADO_CLAVE:-}
+    volumes:
+      # Las fotos de los productos sobreviven a los rebuilds
+      - subidas:/app/data/uploads
+    expose:
+      - "3000"
+
+  # Contenedor de mantenimiento: migraciones, seed y consola de Prisma.
+  # No corre solo; se invoca con "docker compose run --rm tools ..."
+  tools:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://pizzeria:${DB_PASSWORD}@db:5432/pizzeria
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      SAAS_DOMINIO: ${SAAS_DOMINIO:-}
+      PLATAFORMA_EMAIL: ${PLATAFORMA_EMAIL:-}
+      PLATAFORMA_PASSWORD: ${PLATAFORMA_PASSWORD:-}
+    volumes:
+      - subidas:/app/data/uploads
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Copia diaria a las 4 de la mañana, hora del local: con el local cerrado y
+  # la caja ya hecha. Guarda 14 días. Copialas a otro lado (ver README).
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "set -o pipefail; apk add --no-cache tzdata >/dev/null 2>&1 || true;
+      while true; do
+        ahora=$$(date +%s);
+        proxima=$$(date -d \"$$(date +%Y-%m-%d) 04:00\" +%s 2>/dev/null || echo $$ahora);
+        [ $$proxima -le $$ahora ] && proxima=$$((proxima + 86400));
+        sleep $$((proxima - ahora));
+        archivo=/backups/pizzeria-$$(date +%Y%m%d-%H%M).sql.gz;
+        if pg_dump -h db -U pizzeria pizzeria | gzip > $$archivo.tmp; then mv $$archivo.tmp $$archivo; else rm -f $$archivo.tmp; echo 'Fallo el backup'; fi;
+        find /backups -name 'pizzeria-*.sql.gz' -mtime +14 -delete;
+      done"
+
+volumes:
+  datos_db:
+  subidas:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Los valores reales los pone el layout con la marca de cada cliente
+     (src/lib/tema.ts). Estos son los de Comanda Supreg, por si faltan. */
+  --c-marca: 19 19 19; --c-marca-600: 14 14 14; --c-marca-500: 48 48 48; --c-marca-300: 113 113 113;
+  --c-rojo: 208 32 43; --c-rojo-600: 166 26 34; --c-rojo-300: 222 99 107; --c-sobre-rojo: 255 255 255;
+  --c-crema: 250 246 240; --c-crema-200: 239 235 229;
+  --c-ladrillo: 142 18 25; --c-ladrillo-600: 109 13 19;
+  --c-carbon: 23 22 20; --c-carbon-700: 42 40 35; --c-carbon-500: 74 70 62;
+  --c-verde: 46 107 79; --c-verde-600: 34 84 61;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-crema text-carbon font-sans antialiased;
+    font-feature-settings: 'cv05' 1, 'ss01' 1;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    letter-spacing: -0.005em;
+  }
+  *:focus-visible {
+    outline: 2px solid rgb(var(--c-rojo));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-colors disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-primario   { @apply btn bg-marca text-crema hover:bg-marca-600; }
+  .btn-acento     { @apply btn bg-rojo text-sobre-rojo hover:bg-rojo-600; }
+  .btn-peligro    { @apply btn bg-ladrillo text-crema hover:bg-ladrillo-600; }
+  .btn-fantasma   { @apply btn border border-carbon/15 bg-white text-carbon hover:bg-carbon/5; }
+
+  .input {
+    @apply w-full rounded-xl border border-carbon/15 bg-white px-3.5 py-2.5 text-sm
+           placeholder:text-carbon-500/60 focus:border-marca focus:outline-none focus:ring-2 focus:ring-marca/15;
+  }
+  .label { @apply mb-1.5 block text-sm font-medium text-carbon-700; }
+
+  .panel { @apply rounded-2xl border border-carbon/10 bg-white shadow-card; }
+
+  .chip {
+    @apply whitespace-nowrap rounded-full border border-carbon/15 bg-white px-4 py-2
+           text-sm font-medium transition-colors;
+  }
+  .chip-activo { @apply border-marca bg-marca text-crema; }
+  .btn-marca      { @apply btn bg-rojo text-sobre-rojo hover:bg-rojo-600; }
+}
+
+/* Scrollbar discreto en los tableros densos */
+.scroll-fino::-webkit-scrollbar { height: 6px; width: 6px; }
+.scroll-fino::-webkit-scrollbar-thumb { background: rgb(var(--c-carbon) / .18); border-radius: 99px; }
+.scroll-fino::-webkit-scrollbar-track { background: transparent; }
+
+/* Los pedidos nuevos laten en la pantalla de cocina hasta que alguien los toma */
+@keyframes latido {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-rojo) / .55); }
+  50%      { box-shadow: 0 0 0 10px rgb(var(--c-rojo) / 0); }
+}
+.late { animation: latido 1.8s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .late { animation: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+@media print {
+  .no-imprimir { display: none !important; }
+}

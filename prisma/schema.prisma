@@ -1,0 +1,1013 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────── Clientes de la plataforma ───────────
+
+/// Un cliente de Comanda Supreg: una pizzería, una hamburguesería... Tiene su
+/// subdominio (pepperino.comandasupreg.com), su marca y sus sucursales. Todo lo
+/// demás cuelga de sus sucursales, así que nunca se mezcla con otro cliente.
+model Tenant {
+  id       String  @id @default(cuid())
+  /// El subdominio: solo minúsculas, números y guiones
+  slug     String  @unique
+  /// Nombre comercial: "Pepperino Pizza"
+  name     String
+  /// Un dominio propio opcional (pedidos.pepperino.com.ar), además del subdominio
+  customDomain String? @unique
+  active   Boolean @default(true)
+  /// Por qué está suspendido, si lo está: se muestra en la pantalla de aviso
+  suspendedReason String?
+  /// PAGO (falta de pago: se reactiva solo al pagar) o MANUAL
+  suspendedKind   String?
+  suspendedAt     DateTime?
+  createdAt DateTime @default(now())
+
+  // ── Plan y límites ──
+  planId   String?
+  plan     Plan?   @relation(fields: [planId], references: [id])
+  /// Pisan los del plan para este cliente. Vacío = lo del plan.
+  maxBranches Int?
+  maxUsers    Int?
+  /// Funciones habilitadas solo para este cliente, además de las del plan
+  extraFeatures String[] @default([])
+
+  // ── Cobro del abono ──
+  /// Precio mensual acordado, en centavos. Vacío = el del plan.
+  price      Int?
+  /// Hasta cuándo está pago. Vacío = sin vencimiento (cortesía, o todavía no se cobra)
+  paidUntil  DateTime?
+  /// Período de prueba: hasta cuándo puede usarlo sin pagar
+  trialUntil DateTime?
+  /// Si al vencer (pasada la gracia) se suspende solo
+  autoSuspend Boolean @default(true)
+  /// Para no mandar dos avisos del mismo vencimiento
+  notifiedFor DateTime?
+  /// Débito automático de Mercado Pago (preapproval) vigente
+  mpPreapprovalId String? @unique
+
+  // ── Contacto (para la plataforma) ──
+  contactName  String @default("")
+  contactEmail String @default("")
+  contactPhone String @default("")
+  notes        String @default("")
+
+  // Marca: lo que ve el cliente en la carta y el equipo en el panel
+  slogan          String @default("")
+  logoUrl         String @default("")
+  /// Fondos de botones y barras, con letra clara encima: tiene que ser oscuro
+  colorPrimary    String @default("#131313")
+  /// Botones de acción, ofertas y avisos
+  colorAccent     String @default("#D0202B")
+  /// Fondo claro de las pantallas
+  colorBackground String @default("#FAF6F0")
+
+  /// Agente de impresión: se guarda solo el hash del token (SHA-256)
+  printTokenHash String?
+
+  // ── Mercado Pago del local: el pago online de sus clientes cae en SU cuenta ──
+  /// apagado · simulado (demo, no cobra) · real
+  mpMode          String  @default("apagado")
+  /// Cifrados con src/lib/cifrado.ts: nunca en texto plano en la base
+  mpAccessToken   String?
+  mpWebhookSecret String?
+  /// Cuenta conectada, para mostrarla ("PEPPERINOPIZZA (123456)")
+  mpAccount       String?
+
+  branches     Branch[]
+  users        User[]
+  rolePermisos RolePermisos[]
+  payments     TenantPayment[]
+  audit        AuditLog[]
+  printAgents  PrintAgent[]
+}
+
+/// Un plan de la plataforma: qué incluye y cuánto sale.
+model Plan {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  /// Precio mensual en centavos
+  price    Int
+  maxBranches Int   @default(1)
+  /// 0 = sin límite
+  maxUsers    Int   @default(0)
+  /// Funciones opcionales que incluye (ver src/lib/plan.ts)
+  features String[] @default([])
+  active   Boolean  @default(true)
+  position Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tenants Tenant[]
+}
+
+/// Un pago del abono de un cliente. Corre su vencimiento N meses.
+model TenantPayment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// En centavos
+  amount    Int
+  months    Int      @default(1)
+  /// TRANSFERENCIA, EFECTIVO, MERCADO_PAGO, OTRO
+  method    String
+  reference String   @default("")
+  /// El vencimiento antes y después de este pago, para poder anularlo
+  fromDate  DateTime?
+  toDate    DateTime
+  /// Pago de Mercado Pago que lo originó: no se registra dos veces
+  mpPaymentId String? @unique
+  createdBy String   @default("")
+  createdAt DateTime @default(now())
+  voidedAt  DateTime?
+  voidReason String?
+
+  @@index([tenantId, createdAt])
+}
+
+/// Quien administra la plataforma (no es empleado de ningún local).
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+/// Bitácora: quién hizo qué. Solo se agregan filas, nunca se cambian.
+/// Con tenantId, es de ese local; sin, es de la plataforma.
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// usuario (empleado de un local) · plataforma · sistema
+  actorType String
+  actorId   String?
+  actorName String   @default("")
+  /// login, login_fallido, usuario, credenciales, marca, cliente_alta, pago...
+  action    String
+  detail    String   @default("")
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([createdAt])
+}
+
+// ─────────── Sucursales ───────────
+
+/// Cada sucursal es un local con su propia carta, su stock y sus datos.
+/// Cuántas puede tener cada cliente lo dice Tenant.maxBranches.
+model Branch {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  /// Único dentro del cliente: /adrogue en pepperino y en otro cliente no chocan
+  slug     String
+  active   Boolean @default(true)
+  position Int     @default(0)
+
+  // Datos que ve el cliente
+  eslogan        String  @default("")
+  address        String
+  phone          String  @default("")
+  whatsapp       String
+  instagram      String  @default("")
+  tiempoDelivery String  @default("40-55")
+  tiempoTakeaway String  @default("20-30")
+  aceptaPedidos  Boolean @default(true)
+  mensajeCerrado String  @default("Ahora estamos cerrados. Podés dejar tu pedido y lo preparamos al abrir.")
+  heroImageUrl   String?
+
+  // Cobro y postventa
+  /// Cada cuántos minutos se divide el día en la grilla de mesas
+  intervaloReservaMin Int @default(30)
+  /// Cuánto se asume que dura una reserva si no se elige otra cosa
+  duracionReservaMin  Int @default(120)
+
+  aliasBancario String  @default("")
+  cbu           String  @default("")
+  googleResenas String  @default("")
+  imprimirAuto  Boolean @default(true)
+
+  /// Cómo se cobra la pizza mitad y mitad: FIJO (el precio del producto),
+  /// MAS_CARA (el de la mitad más cara, en ese tamaño) o PROMEDIO
+  precioMitad   String  @default("FIJO")
+  /// Cómo salen las comandas y tickets: JSON (ver src/lib/comanda.ts).
+  /// Vacío = como siempre.
+  comanda       String  @default("")
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+
+  users        UserBranch[]
+  categories   Category[]
+  products     Product[]
+  promotions   Promotion[]
+  zones        DeliveryZone[]
+  orders       Order[]
+  tables       Table[]
+  reservations Reservation[]
+  shifts       Shift[]
+  hours        BusinessHour[]
+  printJobs    PrintJob[]
+  printAgents  PrintAgent[]
+  cajas        CashSession[]
+  gastos       Expense[]
+  insumos      Supply[]
+  personal     Staff[]
+}
+
+// ─────────── Usuarios, roles y permisos ───────────
+
+enum Role {
+  /// Ve todas las sucursales y es el único que puede crearlas
+  SUPERADMIN
+  ADMIN
+  CAJERO
+  COCINA
+  REPARTIDOR
+  MOZO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  /// Único dentro del cliente: el mismo mail puede ser empleado de dos clientes
+  email        String
+  passwordHash String
+  role         Role     @default(CAJERO)
+  phone        String?
+  active       Boolean  @default(true)
+  /// Permisos sueltos por encima de los del rol
+  permisosExtra String[] @default([])
+  /// Se incrementa al cambiar la contraseña o dar de baja: invalida las
+  /// sesiones abiertas en cualquier dispositivo
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  branches       UserBranch[]
+  ordersAssigned Order[]         @relation("repartidor")
+  movements      StockMovement[]
+  shifts         Shift[]
+  cajasAbiertas  CashSession[]   @relation("cajaAbrio")
+  cajasCerradas  CashSession[]   @relation("cajaCerro")
+  movimientosCaja CashMovement[]
+  gastosCargados Expense[]       @relation("gastoCargo")
+  cobros         Order[]         @relation("cobro")
+  movimientosInsumo SupplyMovement[]
+  gastosAnulados Expense[]       @relation("gastoAnulo")
+  mesasAtendidas Table[]         @relation("mesaMozo")
+  fichaPersonal  Staff[]
+
+  @@unique([tenantId, email])
+}
+
+/// A qué sucursales entra cada usuario. El superadmin entra a todas sin estar acá.
+model UserBranch {
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@index([branchId])
+}
+
+/// Qué puede hacer cada rol, en cada cliente. Editable desde el panel.
+model RolePermisos {
+  tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role     Role
+  permisos String[] @default([])
+
+  @@id([tenantId, role])
+}
+
+/// Turnos del día: quién atiende y quién reparte.
+model Shift {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date      DateTime  @db.Date
+  role      Role
+  startedAt DateTime?
+  endedAt   DateTime?
+  notes     String?
+
+  @@index([branchId, date])
+}
+
+model BusinessHour {
+  id        String  @id @default(cuid())
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  openTime  String
+  closeTime String
+  closed    Boolean @default(false)
+
+  @@unique([branchId, dayOfWeek])
+}
+
+// ─────────── Catálogo, propio de cada sucursal ───────────
+
+model Category {
+  id          String  @id @default(cuid())
+  branchId    String
+  branch      Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  imageUrl    String?
+  position    Int     @default(0)
+  active      Boolean @default(true)
+
+  products Product[]
+
+  @@unique([branchId, slug])
+  @@index([branchId, position])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  imageUrl    String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  /// Precio usado cuando el producto no tiene variantes
+  price    Int     @default(0)
+  active   Boolean @default(true)
+  featured Boolean @default(false)
+  position Int     @default(0)
+
+  trackStock Boolean @default(false)
+  stock      Int     @default(0)
+  lowStock   Int     @default(5)
+
+  prepMinutes Int @default(15)
+
+  variants  Variant[]
+  addons    AddonGroup[]
+  items     OrderItem[]
+  movements StockMovement[]
+  promos    PromotionProduct[]
+  receta    RecipeItem[]
+
+  @@unique([branchId, slug])
+  @@index([categoryId, position])
+}
+
+model Variant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  price     Int
+  stock     Int     @default(0)
+  active    Boolean @default(true)
+  position  Int     @default(0)
+
+  items     OrderItem[]
+  movements StockMovement[]
+  receta    RecipeItem[]
+}
+
+model AddonGroup {
+  id        String        @id @default(cuid())
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  minPick   Int           @default(0)
+  maxPick   Int           @default(1)
+  position  Int           @default(0)
+  /// Las opciones son gustos de pizza (mitad y mitad): su precio sale de la
+  /// pizza de ese nombre. Vacío = se deduce del nombre del grupo ("mitad").
+  esMitad   Boolean?
+  options   AddonOption[]
+}
+
+model AddonOption {
+  id       String     @id @default(cuid())
+  groupId  String
+  group    AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name     String
+  price    Int        @default(0)
+  active   Boolean    @default(true)
+  position Int        @default(0)
+  receta   RecipeItem[]
+}
+
+enum PromoType {
+  PORCENTAJE
+  MONTO_FIJO
+  ENVIO_GRATIS
+  BANNER
+  PRODUCTO_PORCENTAJE
+  PRODUCTO_PRECIO
+}
+
+model Promotion {
+  id          String    @id @default(cuid())
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  imageUrl    String?
+  type        PromoType @default(BANNER)
+  value       Int       @default(0)
+  code        String?
+  minOrder    Int       @default(0)
+  active      Boolean   @default(true)
+  showPopup   Boolean   @default(false)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  /// Días en que corre: 0 domingo .. 6 sábado. Vacío = todos.
+  days Int[] @default([])
+
+  products PromotionProduct[]
+
+  @@unique([branchId, code])
+  @@index([branchId, active])
+}
+
+model PromotionProduct {
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, productId])
+  @@index([productId])
+}
+
+model DeliveryZone {
+  id       String  @id @default(cuid())
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name     String
+  fee      Int     @default(0)
+  active   Boolean @default(true)
+  position Int     @default(0)
+
+  orders Order[]
+
+  @@index([branchId])
+}
+
+// ─────────── Pedidos ───────────
+
+enum OrderType {
+  DELIVERY
+  TAKEAWAY
+  SALON
+}
+
+enum OrderStatus {
+  PENDIENTE
+  ACEPTADO
+  EN_PREPARACION
+  LISTO
+  EN_CAMINO
+  ENTREGADO
+  /// No se pudo tomar: sin stock, fuera de zona, ya cerrando
+  RECHAZADO
+  /// Se aceptó y se cayó después
+  CANCELADO
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  COBRADO
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  /// Tarjeta de débito o crédito, en el local o con posnet en la entrega
+  TARJETA_ENTREGA
+  /// Mercado Pago: QR o link de pago
+  MERCADO_PAGO
+}
+
+enum OrderSource {
+  WEB
+  WHATSAPP
+  MOSTRADOR
+}
+
+model Order {
+  id       String @id @default(cuid())
+  code     String @unique
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  type   OrderType
+  status OrderStatus @default(PENDIENTE)
+  source OrderSource @default(WEB)
+
+  customerName  String
+  customerPhone String
+  address       String?
+  addressNotes  String?
+  zoneId        String?
+  zone          DeliveryZone? @relation(fields: [zoneId], references: [id])
+
+  tableId String?
+  table   Table?  @relation(fields: [tableId], references: [id])
+
+  subtotal    Int @default(0)
+  deliveryFee Int @default(0)
+  discount    Int @default(0)
+  total       Int @default(0)
+
+  paymentMethod PaymentMethod @default(EFECTIVO)
+  paymentStatus PaymentStatus @default(PENDIENTE)
+  /// Cuándo entró la plata. La caja y Finanzas cuentan por esta fecha.
+  paidAt        DateTime?
+  /// Quién registró el cobro. Vacío si se pagó online.
+  paidById      String?
+  paidBy        User?     @relation("cobro", fields: [paidById], references: [id])
+  /// Si al cobrar se cambió la forma de pago, la que había elegido el cliente
+  metodoOriginal PaymentMethod?
+  cashAmount    Int?
+
+  // Pago online con Mercado Pago (Checkout Pro)
+  /// El cliente eligió pagar online desde la carta
+  pagoOnline    Boolean @default(false)
+  /// Todavía no pagó: no se puede aceptar ni se manda a cocina. Si en 30
+  /// minutos no paga, se rechaza solo y el stock vuelve.
+  esperandoPago Boolean @default(false)
+  mpPaymentId   String?
+  /// Último estado informado por Mercado Pago: approved, rejected, refunded...
+  mpStatus      String?
+  promoCode     String?
+
+  notes        String?
+  cancelReason String?
+  assignedToId String?
+  assignedTo   User?     @relation("repartidor", fields: [assignedToId], references: [id])
+  scheduledFor DateTime?
+
+  printedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  closedAt     DateTime?
+  acceptedAt   DateTime?
+  readyAt      DateTime?
+  dispatchedAt DateTime?
+  deliveredAt  DateTime?
+
+  items     OrderItem[]
+  printJobs PrintJob[]
+
+  @@index([branchId, status, createdAt])
+  @@index([branchId, createdAt])
+  @@index([branchId, paidAt])
+  @@index([tableId, status])
+  @@index([esperandoPago, createdAt])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   Variant? @relation(fields: [variantId], references: [id])
+
+  /// Snapshot: si mañana cambia el precio, el pedido viejo no se altera
+  name        String
+  variantName String?
+  unitPrice   Int
+  quantity    Int     @default(1)
+  total       Int
+  notes       String?
+
+  addons OrderItemAddon[]
+}
+
+model OrderItemAddon {
+  id     String    @id @default(cuid())
+  itemId String
+  item   OrderItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name   String
+  price  Int       @default(0)
+}
+
+// ─────────── Stock ───────────
+
+enum MovementType {
+  VENTA
+  REPOSICION
+  AJUSTE
+  MERMA
+  DEVOLUCION
+}
+
+model StockMovement {
+  id        String       @id @default(cuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?
+  variant   Variant?     @relation(fields: [variantId], references: [id])
+  type      MovementType
+  quantity  Int
+  before    Int
+  after     Int
+  reason    String?
+  /// Solo en mermas: ROTURA, VENCIDO, SALIO_MAL, REGALO, PERSONAL u OTRO
+  /// (ver src/lib/mermas.ts). Las anotadas antes de existir esto quedan vacías.
+  lossType  String?
+  orderCode String?
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+
+  @@index([productId, createdAt])
+  @@index([type, createdAt])
+}
+
+// ─────────── Salón, reservas y eventos ───────────
+
+/// Estado de la mesa AHORA. Las reservas futuras no lo tocan: viven en
+/// Reservation con su fecha, y la disponibilidad se calcula por franja horaria.
+enum TableStatus {
+  LIBRE
+  OCUPADA
+  FUERA_DE_SERVICIO
+}
+
+model Table {
+  id       String      @id @default(cuid())
+  branchId String
+  branch   Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name     String
+  capacity Int         @default(4)
+  zone     String?
+  status   TableStatus @default(LIBRE)
+  active   Boolean     @default(true)
+
+  /// Mientras está ocupada: cuántos son, desde cuándo y qué mozo la atiende
+  guests   Int?
+  openedAt DateTime?
+  waiterId String?
+  waiter   User?       @relation("mesaMozo", fields: [waiterId], references: [id], onDelete: SetNull)
+
+  reservations Reservation[]
+  orders       Order[]
+
+  @@index([branchId])
+}
+
+enum ReservationType {
+  MESA
+  CUMPLEANOS
+  EVENTO
+}
+
+enum ReservationStatus {
+  NUEVA
+  CONFIRMADA
+  SENTADA
+  CUMPLIDA
+  CANCELADA
+  NO_SE_PRESENTO
+}
+
+model Reservation {
+  id       String  @id @default(cuid())
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tableId  String?
+  table    Table?  @relation(fields: [tableId], references: [id])
+
+  customerName  String
+  customerPhone String
+  email         String?
+  type          ReservationType   @default(MESA)
+  status        ReservationStatus @default(NUEVA)
+  date          DateTime
+  people        Int               @default(2)
+  notes         String?
+  budget        Int?
+  /// Cuánto se estima que ocupa la mesa, en minutos
+  duracionMin   Int               @default(120)
+  createdAt     DateTime          @default(now())
+
+  @@index([branchId, date])
+  @@index([tableId, date])
+}
+
+// ─────────── Impresión ───────────
+
+enum PrintStatus {
+  EN_COLA
+  IMPRESO
+  ERROR
+}
+
+model PrintJob {
+  id        String      @id @default(cuid())
+  /// Vacío en la prueba de impresión
+  orderId   String?
+  order     Order?      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Cada local imprime solo lo suyo. Opcional solo para no romper las
+  /// comandas viejas al actualizar; todas las nuevas lo llevan.
+  branchId  String?
+  branch    Branch?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  station   String      @default("cocina")
+  /// Solo para un agente puntual (la prueba de impresión desde el panel)
+  agentId   String?
+  agent     PrintAgent? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  payload   String
+  status    PrintStatus @default(EN_COLA)
+  attempts  Int         @default(0)
+  error     String?
+  createdAt DateTime    @default(now())
+  printedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([branchId, status, createdAt])
+}
+
+// ─────────── Caja ───────────
+
+/// Un turno de caja: se abre con un fondo, se cierra contando la plata.
+/// El sistema calcula cuánto efectivo debería haber y muestra la diferencia.
+model CashSession {
+  id       String @id @default(cuid())
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  openedById String
+  openedBy   User     @relation("cajaAbrio", fields: [openedById], references: [id])
+  openedAt   DateTime @default(now())
+  /// Fondo de caja con el que se arranca, en centavos. BigInt: con la
+  /// inflación, un Int (tope $21.474.836) se queda corto
+  openingAmount BigInt
+
+  closedById String?
+  closedBy   User?     @relation("cajaCerro", fields: [closedById], references: [id])
+  closedAt   DateTime?
+  /// Lo que se contó al cerrar
+  countedAmount  BigInt?
+  /// Lo que el sistema esperaba al momento del cierre (queda congelado)
+  expectedAmount BigInt?
+  notes          String?
+
+  movements CashMovement[]
+
+  @@index([branchId, closedAt])
+}
+
+enum CashMovementType {
+  /// Entra plata que no es una venta: cambio, aporte del dueño
+  INGRESO
+  /// Sale plata: pago a proveedor, retiro del dueño, compra de urgencia
+  EGRESO
+}
+
+model CashMovement {
+  id        String           @id @default(cuid())
+  sessionId String
+  session   CashSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  type      CashMovementType
+  amount    BigInt
+  reason    String
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  createdAt DateTime         @default(now())
+
+  /// Si es la salida de plata de un gasto pagado con el efectivo de la caja
+  expense   Expense?
+
+  @@index([sessionId])
+}
+
+// ─────────── Gastos ───────────
+
+enum ExpensePayment {
+  /// Sale del cajón: si hay caja abierta, también figura como egreso de la caja
+  EFECTIVO_CAJA
+  /// Efectivo que no sale de la caja del turno (lo pagó el dueño, por ejemplo)
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  MERCADO_PAGO
+}
+
+/// Lo que gasta el local: mercadería, sueldos, alquiler, servicios...
+/// Con esto y las ventas se calcula el resultado del mes.
+///
+/// Los gastos no se borran: se anulan, y queda quién y cuándo. Así el
+/// registro sirve de respaldo si alguien pregunta por un número.
+model Expense {
+  id       String @id @default(cuid())
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  /// El día del gasto (el de la factura o la compra), no el de la carga
+  date        DateTime       @db.Date
+  category    String
+  description String
+  supplier    String?
+  /// En centavos. BigInt: una compra grande supera el tope de un Int ($21.474.836)
+  amount      BigInt
+  payment     ExpensePayment @default(EFECTIVO)
+
+  createdById String
+  createdBy   User     @relation("gastoCargo", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  /// La entrada de insumos que se cargó junto con este gasto, si la hay
+  supplyMovement SupplyMovement?
+
+  /// Solo en sueldos: a quién, qué (SUELDO, ADELANTO, AGUINALDO, EXTRA,
+  /// VACACIONES, OTRO; ver src/lib/sueldos.ts) y de qué mes ("2026-10")
+  staffId  String?
+  staff    Staff?  @relation(fields: [staffId], references: [id])
+  payKind  String?
+  period   String?
+
+  /// Movimiento de caja que generó, si se pagó con el efectivo del cajón
+  cashMovementId String?       @unique
+  cashMovement   CashMovement? @relation(fields: [cashMovementId], references: [id], onDelete: SetNull)
+
+  voidedAt     DateTime?
+  voidedById   String?
+  voidedBy     User?     @relation("gastoAnulo", fields: [voidedById], references: [id])
+  voidReason   String?
+
+  @@index([branchId, date])
+  @@index([staffId, period])
+}
+
+// ─────────── Ajustes de la plataforma ───────────
+
+/// Ajustes de la instalación, no de un cliente (por ejemplo, qué versiones de
+/// permisos ya se aplicaron). La marca de cada cliente vive en Tenant.
+model Setting {
+  key   String @id
+  value String
+}
+
+// ─────────── Insumos y recetas ───────────
+
+/// Lo que se usa para preparar (muzzarella, salsa, bollos), no lo que se
+/// vende. Cada sucursal tiene los suyos.
+///
+/// Las cantidades se guardan en milésimas de la unidad, como enteros: gramos
+/// si la unidad es kg, mililitros si es litro, milésimas si es unidad. Así no
+/// hay decimales con error ("0,1 + 0,2") y 5 kg son 5000.
+model Supply {
+  id       String  @id @default(cuid())
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name     String
+  /// KG, L o U (ver src/lib/insumos.ts)
+  unit     String  @default("KG")
+  /// Lo que hay, en milésimas. Puede quedar negativo: la receta es una
+  /// estimación y nunca frena una venta. El conteo lo corrige.
+  stock    Int     @default(0)
+  /// Debajo de esto, avisa que se está por acabar (en milésimas)
+  minimum  Int     @default(0)
+  active   Boolean @default(true)
+  position Int     @default(0)
+  createdAt DateTime @default(now())
+
+  movements SupplyMovement[]
+  receta    RecipeItem[]
+
+  @@unique([branchId, name])
+  @@index([branchId, active])
+}
+
+/// Cada vez que cambia un insumo: entra mercadería, se vende algo que lo usa,
+/// se cuenta, se pierde o vuelve por un pedido cancelado.
+model SupplyMovement {
+  id        String  @id @default(cuid())
+  supplyId  String
+  supply    Supply  @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+  /// ENTRADA, CONSUMO, DEVOLUCION, AJUSTE o MERMA
+  type      String
+  /// En milésimas, con signo: positivo entra, negativo sale
+  quantity  Int
+  before    Int
+  after     Int
+  reason    String?
+  /// Solo en mermas: el mismo tipo que las mermas de productos
+  lossType  String?
+  orderCode String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  /// Si al anotar la entrada se cargó también lo que se pagó
+  expenseId String?  @unique
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([supplyId, createdAt])
+  @@index([orderCode])
+}
+
+/// Una línea de receta: cuánto de un insumo usa un producto (en un tamaño) o
+/// un extra. Con cada venta se descuenta solo.
+///
+///   Muzzarella, tamaño Grande → 400 g de muzzarella
+///   Extra "Doble muzzarella"  → 150 g de muzzarella
+model RecipeItem {
+  id            String       @id @default(cuid())
+  supplyId      String
+  supply        Supply       @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+  /// De un producto (y, si tiene tamaños, de uno de ellos)...
+  productId     String?
+  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId     String?
+  variant       Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  /// ...o de un extra o gusto
+  addonOptionId String?
+  addonOption   AddonOption? @relation(fields: [addonOptionId], references: [id], onDelete: Cascade)
+  /// En milésimas de la unidad del insumo (gramos, mililitros...)
+  quantity      Int
+
+  @@index([productId])
+  @@index([addonOptionId])
+}
+
+// ─────────── Personal y sueldos ───────────
+
+/// Quien cobra un sueldo en el local. No hace falta que tenga usuario del
+/// sistema (el lavacopas no entra al panel); si lo tiene, se puede vincular.
+model Staff {
+  id       String  @id @default(cuid())
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name     String
+  /// Cocinero, mozo, cajero, repartidor...
+  role     String  @default("")
+  /// Sueldo mensual acordado, en centavos. Vacío si cobra por día u hora.
+  salary   BigInt?
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  active   Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  pagos Expense[]
+
+  @@index([branchId, active])
+}
+
+/// Una impresora de un local: el programa (agente) que corre en la PC del
+/// local y la conecta. Se vincula con un código corto que se genera en el
+/// panel; después usa su propia clave, que solo sirve para esa sucursal.
+model PrintAgent {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  /// "Caja", "Cocina", "Mostrador"
+  name        String
+  /// todo · cocina · caja
+  stations    String    @default("todo")
+  abrirCajon  Boolean   @default(false)
+  /// Hash (SHA-256) de la clave del agente; vacío hasta que se vincula
+  tokenHash   String?   @unique
+  /// Hash del código de vinculación, de un solo uso
+  pairCodeHash String?  @unique
+  pairExpires DateTime?
+  pairedAt    DateTime?
+  /// Lo que informa el agente en cada consulta
+  lastSeenAt  DateTime?
+  lastError   String?
+  printer     String    @default("")
+  device      String    @default("")
+  version     String    @default("")
+  createdAt   DateTime  @default(now())
+
+  jobs PrintJob[]
+
+  @@index([branchId])
+}
