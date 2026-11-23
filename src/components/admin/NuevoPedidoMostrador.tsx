@@ -66,6 +66,8 @@ export default function NuevoPedidoMostrador({
   const [pago, setPago] = useState<FormaDePago>('EFECTIVO');
   const [abonaCon, setAbonaCon] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  /** Null: todas las categorías */
+  const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [eligiendo, setEligiendo] = useState<ProductoMostrador | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -75,9 +77,12 @@ export default function NuevoPedidoMostrador({
   const total = subtotal + envio;
   const abona = abonaCon ? toCents(abonaCon) : 0;
 
-  const productos = categorias.flatMap((c) => c.products.map((p) => ({ ...p, categoria: c.name })));
+  // Buscando, se busca en toda la carta; si no, la categoría elegida o todas, con su título
   const q = busqueda.trim().toLowerCase();
-  const visibles = q ? productos.filter((p) => p.name.toLowerCase().includes(q)) : productos;
+  const grupos = q
+    ? [{ id: 'busqueda', name: '', products: categorias.flatMap((c) => c.products).filter((p) => p.name.toLowerCase().includes(q)) }]
+    : categorias.filter((c) => !categoriaId || c.id === categoriaId);
+  const sinResultados = grupos.every((g) => g.products.length === 0);
 
   function cerrar() {
     setAbierto(false);
@@ -168,8 +173,8 @@ export default function NuevoPedidoMostrador({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Catálogo */}
-        <div className="flex min-h-0 flex-col border-b border-carbon/10 md:border-b-0 md:border-r">
-          <div className="border-b border-carbon/10 p-4">
+        <div className="flex min-h-0 min-w-0 flex-col border-b border-carbon/10 md:border-b-0 md:border-r">
+          <div className="space-y-3 border-b border-carbon/10 p-4">
             <input
               className="input"
               placeholder="Buscar producto"
@@ -177,25 +182,50 @@ export default function NuevoPedidoMostrador({
               onChange={(e) => setBusqueda(e.target.value)}
               autoFocus
             />
+            {categorias.length > 1 && (
+              <div className="scroll-fino -mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label="Categorías">
+                {[{ id: null, name: 'Todas' }, ...categorias].map((c) => {
+                  const activa = !q && categoriaId === c.id;
+                  return (
+                    <button
+                      key={c.id ?? 'todas'}
+                      type="button"
+                      role="tab"
+                      aria-selected={activa}
+                      onClick={() => { setCategoriaId(c.id); setBusqueda(''); }}
+                      className={`chip shrink-0 whitespace-nowrap ${activa ? 'chip-activo' : ''}`}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="scroll-fino min-h-0 flex-1 overflow-y-auto p-4">
-            <div className="grid gap-2 sm:grid-cols-2">
-              {visibles.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => tocar(p)}
-                  className="rounded-xl border border-carbon/15 bg-white px-3 py-2.5 text-left text-sm hover:border-marca"
-                >
-                  <span className="block font-medium">{p.name}</span>
-                  <span className="text-carbon-500">
-                    {p.variants.length > 0
-                      ? p.variants.map((v) => `${v.name} ${money(v.price)}`).join(' · ')
-                      : money(p.price)}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {sinResultados && <p className="py-6 text-center text-sm text-carbon-500">No hay productos con ese nombre.</p>}
+            {grupos.filter((g) => g.products.length > 0).map((g) => (
+              <section key={g.id} className="mb-5 last:mb-0">
+                {g.name && !categoriaId && <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-carbon-500">{g.name}</h3>}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {g.products.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => tocar(p)}
+                      className="rounded-xl border border-carbon/15 bg-white px-3 py-2.5 text-left text-sm hover:border-marca"
+                    >
+                      <span className="block font-medium">{p.name}</span>
+                      <span className="text-carbon-500">
+                        {p.variants.length > 0
+                          ? p.variants.map((v) => `${v.name} ${money(v.price)}`).join(' · ')
+                          : money(p.price)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
 
