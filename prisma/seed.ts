@@ -180,8 +180,8 @@ async function main() {
     await db.plan.createMany({
       data: [
         { name: 'Básico', price: 0, maxBranches: 1, maxUsers: 5, features: [], position: 0 },
-        { name: 'Completo', price: 0, maxBranches: 1, maxUsers: 0, features: ['salon', 'insumos', 'sueldos', 'pago_online'], position: 1 },
-        { name: 'Cadena', price: 0, maxBranches: 5, maxUsers: 0, features: ['salon', 'insumos', 'sueldos', 'pago_online'], position: 2 },
+        { name: 'Completo', price: 0, maxBranches: 1, maxUsers: 0, features: ['salon', 'insumos', 'sueldos', 'pago_online', 'whatsapp'], position: 1 },
+        { name: 'Cadena', price: 0, maxBranches: 5, maxUsers: 0, features: ['salon', 'insumos', 'sueldos', 'pago_online', 'whatsapp'], position: 2 },
       ],
     });
   }

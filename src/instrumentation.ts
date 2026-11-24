@@ -22,5 +22,16 @@ export async function register() {
       setTimeout(correr, 60_000);
       setInterval(correr, 60 * 60_000).unref();
     }
+
+    // WhatsApp: los avisos que quedaron esperando (el celular sin conexión, un
+    // reintento) salen solos; y cada tanto se revisa con Evolution el estado de
+    // cada número, por si se perdió algún aviso de conexión.
+    if (process.env.NEXT_PHASE !== 'phase-production-build' && process.env.EVOLUTION_URL && process.env.EVOLUTION_API_KEY) {
+      const { procesarCola, sincronizarLineas } = await import('@/lib/whatsapp/mensajes');
+      const sincronizar = () => sincronizarLineas().catch((e) => console.error('WhatsApp: estado de los números', e));
+      setInterval(() => void procesarCola(), 15_000).unref();
+      setTimeout(sincronizar, 30_000);
+      setInterval(sincronizar, 5 * 60_000).unref();
+    }
   }
 }

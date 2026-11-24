@@ -41,6 +41,11 @@ services:
       SAAS_DIAS_GRACIA: ${SAAS_DIAS_GRACIA:-5}
       SAAS_SUSPENDER_VENCIDOS: ${SAAS_SUSPENDER_VENCIDOS:-true}
       CIFRADO_CLAVE: ${CIFRADO_CLAVE:-}
+      # WhatsApp de los locales: Evolution API, en la red interna (ver el
+      # servicio "evolution"). Sin EVOLUTION_API_KEY, la sección no se ofrece.
+      EVOLUTION_URL: http://evolution:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      WHATSAPP_WEBHOOK_URL: http://app:3000/api/whatsapp/webhook
     volumes:
       # Las fotos de los productos sobreviven a los rebuilds
       - subidas:/app/data/uploads
@@ -65,6 +70,52 @@ services:
       PLATAFORMA_PASSWORD: ${PLATAFORMA_PASSWORD:-}
     volumes:
       - subidas:/app/data/uploads
+
+  # WhatsApp de los locales (Evolution API, la que mantiene vinculados los
+  # números como "dispositivo vinculado"). Opcional: se prende con
+  # COMPOSE_PROFILES=whatsapp en el .env. No abre puertos hacia afuera: solo
+  # la app le habla, por la red interna. Usa ~500-800 MB de RAM.
+  # La versión va fija: una nueva de Evolution se prueba antes de subirla.
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    profiles: ["whatsapp"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SERVER_URL: http://evolution:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      # Su propia base ("evolution") en el mismo Postgres; deploy.sh la crea
+      DATABASE_CONNECTION_URI: postgresql://pizzeria:${DB_PASSWORD}@db:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: comanda
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+      DEL_INSTANCE: "false"
+      # Cuántas veces renueva el QR antes de dar por abandonada la conexión
+      QRCODE_LIMIT: "30"
+      # Cómo aparece en el celular, en "Dispositivos vinculados"
+      CONFIG_SESSION_PHONE_CLIENT: Comanda Supreg
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      LOG_LEVEL: ERROR,WARN
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - evolution_instancias:/evolution/instances
+    expose:
+      - "8080"
+
+  # Caché de Evolution. Sin disco: si se reinicia, se vuelve a armar sola.
+  redis:
+    image: redis:7-alpine
+    profiles: ["whatsapp"]
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
 
   caddy:
     image: caddy:2-alpine
@@ -107,5 +158,6 @@ services:
 volumes:
   datos_db:
   subidas:
+  evolution_instancias:
   caddy_data:
   caddy_config:

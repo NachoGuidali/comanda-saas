@@ -30,6 +30,7 @@ uno. Acá casi todo ya estaba separado por sucursal; alcanzó con agregar un niv
 | Acciones públicas | Crear pedido, reservar, validar un código, pagar: la sucursal tiene que ser del cliente del dominio. El seguimiento `/pedido/CODIGO` solo muestra pedidos del cliente del dominio. |
 | Fotos | `data/uploads/<id del cliente>/`, servidas solo desde su dominio. |
 | Impresora | Cada impresora se agrega por sucursal y se vincula con un código de un solo uso; recibe su propia clave (se guarda solo el hash) atada a esa sucursal, y entra por cualquier dominio. La clave general del cliente (para `.env`) entra solo por su dominio. |
+| WhatsApp | Un número por sucursal (`WhatsAppLine`), con una instancia propia en Evolution. Sus avisos llegan firmados con una clave de esa instancia (se guarda solo el hash). Chats y mensajes por sucursal; los archivos, en la carpeta del cliente y solo con sesión. |
 | Marca | Nombre, eslogan, logo y tres colores en `Tenant`. El layout los pone como variables CSS y todo el sistema (carta, panel, cocina) se pinta con eso. |
 
 La prueba de punta a punta del aislamiento (dos clientes, ~70 controles: dominios,
@@ -96,6 +97,7 @@ mermas, gastos, finanzas y reportes. Las funciones opcionales
 | `insumos` | Insumos y recetas |
 | `sueldos` | Personal, sueldos y adelantos |
 | `pago_online` | Cobro con Mercado Pago desde la carta, en la cuenta del local |
+| `whatsapp` | El WhatsApp del local conectado: bandeja de chats, avisos del pedido y bot (requiere Evolution en el servidor) |
 
 Lo que no está en su plan desaparece del menú y de la carta, y sus pantallas y
 acciones se niegan. Los límites (sucursales, usuarios activos) se controlan al

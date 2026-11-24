@@ -85,6 +85,7 @@ model Tenant {
   payments     TenantPayment[]
   audit        AuditLog[]
   printAgents  PrintAgent[]
+  whatsappLines WhatsAppLine[]
 }
 
 /// Un plan de la plataforma: qué incluye y cuánto sale.
@@ -221,6 +222,8 @@ model Branch {
   hours        BusinessHour[]
   printJobs    PrintJob[]
   printAgents  PrintAgent[]
+  whatsappLine WhatsAppLine?
+  whatsappChats WhatsAppChat[]
   cajas        CashSession[]
   gastos       Expense[]
   insumos      Supply[]
@@ -1010,4 +1013,105 @@ model PrintAgent {
   jobs PrintJob[]
 
   @@index([branchId])
+}
+
+/// El WhatsApp de una sucursal: un número vinculado al sistema como
+/// "dispositivo vinculado" (con Evolution API), igual que WhatsApp Web. El
+/// local sigue usando el celular como siempre.
+model WhatsAppLine {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId    String    @unique
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  /// Nombre de la instancia en Evolution: "cs-<id>"
+  instance    String    @unique
+  /// Hash (SHA-256) de la clave con la que Evolution firma sus avisos
+  tokenHash   String
+  /// desconectado · esperando_qr · conectado
+  status      String    @default("desconectado")
+  /// El número conectado, solo dígitos: 5491122334455
+  phone       String    @default("")
+  profileName String    @default("")
+  /// El último QR (imagen en data URL); vale menos de un minuto
+  qr          String?
+  qrAt        DateTime?
+  connectedAt DateTime?
+  /// Por qué se cortó, si se cortó: "Se desconectó desde el celular"
+  lastError   String?
+  lastEventAt DateTime?
+  /// Avisos automáticos, bot y respuestas rápidas: JSON (ver src/lib/whatsapp/config.ts)
+  config      String    @default("")
+  createdAt   DateTime  @default(now())
+
+  chats WhatsAppChat[]
+}
+
+/// Una conversación con un cliente.
+model WhatsAppChat {
+  id            String    @id @default(cuid())
+  lineId        String
+  line          WhatsAppLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  branchId      String
+  branch        Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  /// Como lo identifica WhatsApp: 5491122334455@s.whatsapp.net
+  jid           String
+  /// Solo dígitos; vacío si WhatsApp no lo informa (contactos con identificador oculto)
+  phone         String    @default("")
+  /// El nombre que el cliente tiene en su WhatsApp
+  name          String    @default("")
+  lastMessageAt DateTime  @default(now())
+  lastPreview   String    @default("")
+  unread        Int       @default(0)
+  /// Pidió hablar con una persona: se destaca en la bandeja hasta que alguien contesta
+  pideAtencion  Boolean   @default(false)
+  /// El bot no contesta en este chat hasta esta hora (alguien del local está atendiendo)
+  botPausedUntil DateTime?
+  /// Última vez que el bot saludó: un saludo por cliente cada tantas horas
+  greetedAt     DateTime?
+  archived      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  messages WhatsAppMessage[]
+
+  @@unique([lineId, jid])
+  @@index([branchId, lastMessageAt])
+  @@index([lineId, phone])
+}
+
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  /// El id que le da WhatsApp. Vacío mientras no se mandó.
+  waId      String?
+  fromMe    Boolean
+  /// cliente · panel (alguien del local, desde el sistema) · celular (desde el
+  /// teléfono del local) · aviso (automático de un pedido) · bot
+  author    String
+  userId    String?
+  userName  String   @default("")
+  /// texto · imagen · audio · video · documento · sticker · ubicacion · contacto · otro
+  type      String   @default("texto")
+  text      String   @default("")
+  /// Archivo guardado en la carpeta del cliente (no es público: se sirve con sesión)
+  mediaPath String?
+  mediaMime String?
+  mediaName String?
+  /// Notas de voz: se mandan como audio grabado, no como archivo
+  voz       Boolean  @default(false)
+  /// pendiente · enviando · enviado · entregado · leido · error · recibido
+  status    String
+  error     String?
+  attempts  Int      @default(0)
+  nextTryAt DateTime?
+  /// El pedido que originó el aviso, si es un aviso automático
+  orderId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chatId, waId])
+  @@index([chatId, createdAt])
+  @@index([status, nextTryAt])
+  @@index([chatId, updatedAt])
 }

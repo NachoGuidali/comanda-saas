@@ -5,10 +5,12 @@ import GestorConfig, { type EjemploMitad } from '@/components/admin/GestorConfig
 import { esGrupoMitad, tablaDeGustos } from '@/lib/mitad';
 import { urlDelCliente } from '@/lib/tenant';
 import { leerConfig } from '@/lib/comanda';
+import { evolutionDisponible } from '@/lib/whatsapp/evolution';
+import { valoresDelLocal } from '@/lib/whatsapp/mensajes';
 
 export const dynamic = 'force-dynamic';
 
-const SECCIONES = ['local', 'horarios', 'envios', 'mitad', 'cobro', 'impresion'] as const;
+const SECCIONES = ['local', 'horarios', 'envios', 'mitad', 'cobro', 'impresion', 'whatsapp'] as const;
 
 /** ?seccion=impresion abre directo esa pestaña (para mandarle el link a un local por WhatsApp). */
 export default async function ConfigPage({ searchParams }: { searchParams: Promise<{ seccion?: string }> }) {
@@ -16,7 +18,7 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
   const pedida = (await searchParams).seccion;
   const seccion = SECCIONES.find((x) => x === pedida) ?? 'local';
 
-  const [branch, zonas, horarios, productos, categorias, tenant, agentes] = await Promise.all([
+  const [branch, zonas, horarios, productos, categorias, tenant, agentes, lineaWa] = await Promise.all([
     db.branch.findUnique({ where: { id: s.branchId } }),
     db.deliveryZone.findMany({ where: { branchId: s.branchId, active: true }, orderBy: { fee: 'asc' } }),
     db.businessHour.findMany({ where: { branchId: s.branchId }, orderBy: { dayOfWeek: 'asc' } }),
@@ -31,6 +33,7 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
     db.category.findMany({ where: { branchId: s.branchId }, orderBy: { position: 'asc' }, select: { id: true, name: true } }),
     db.tenant.findUniqueOrThrow({ where: { id: s.tenantId } }),
     db.printAgent.findMany({ where: { branchId: s.branchId }, orderBy: { createdAt: 'asc' } }),
+    db.whatsAppLine.findUnique({ where: { branchId: s.branchId } }),
   ]);
 
   // Un ejemplo con precios reales: la mitad y mitad grande, con el gusto más barato y el más caro
@@ -78,6 +81,21 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
         lastSeenAt: a.lastSeenAt?.toISOString() ?? null, lastError: a.lastError, printer: a.printer, device: a.device, version: a.version,
       }))}
       imprimeCaja={leerConfig(branch.comanda).caja.imprimir !== 'nunca'}
+      whatsapp={{
+        disponible: evolutionDisponible(),
+        incluido: tieneFuncion(s, 'whatsapp'),
+        existe: !!lineaWa,
+        estado: {
+          status: lineaWa?.status ?? 'desconectado',
+          phone: lineaWa?.phone ?? '',
+          profileName: lineaWa?.profileName ?? '',
+          // El QR lo trae la pantalla al consultar; al entrar no se muestra uno que puede estar vencido
+          qr: null,
+          lastError: lineaWa?.lastError ?? null,
+        },
+        config: lineaWa?.config ?? '',
+        valores: valoresDelLocal(tenant, branch),
+      }}
       seccionInicial={seccion}
       categorias={categorias}
     />

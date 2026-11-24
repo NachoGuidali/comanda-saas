@@ -114,14 +114,19 @@ export default function DetallePedido({
             <p className="mt-2 text-lg font-medium">{pedido.customerName}</p>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               {pedido.customerPhone !== '-' && <a href={`tel:${pedido.customerPhone}`} className="underline">{pedido.customerPhone}</a>}
-              {pedido.customerPhone !== '-' && <a
-                href={`https://wa.me/${pedido.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(textoWa)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-verde underline"
-              >
-                Escribirle por WhatsApp
-              </a>}
+              {pedido.customerPhone !== '-' && (permisos.whatsapp
+                // Con el WhatsApp del local conectado, el chat queda en la bandeja del sistema
+                ? <a href={`/admin/whatsapp?tel=${encodeURIComponent(pedido.customerPhone)}`} className="text-verde underline">
+                    Abrir el chat de WhatsApp
+                  </a>
+                : <a
+                    href={`https://wa.me/${pedido.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(textoWa)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-verde underline"
+                  >
+                    Escribirle por WhatsApp
+                  </a>)}
             </div>
 
             {pedido.address && (

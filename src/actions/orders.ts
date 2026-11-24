@@ -17,6 +17,7 @@ import { getTenant } from '@/lib/tenant';
 import { credencialesDelCliente } from '@/lib/mp-cliente';
 import { modoMP, firmaSimulada } from '@/lib/mercadopago';
 import { linkDePago, reembolsarPedido, resolverPagoSimulado } from '@/lib/pagos';
+import { avisarPedido } from '@/lib/whatsapp/mensajes';
 
 export type ItemCarrito = {
   productId: string;
@@ -526,6 +527,8 @@ async function crearPedidoInterno(items: ItemCarrito[], datos: DatosPedido): Pro
   if (nace === 'ACEPTADO' && branch.imprimirAuto) {
     await encolarImpresion(pedido.id).catch((e) => console.error('Impresión', e));
   }
+  // Cargado ya aceptado desde el local (teléfono, WhatsApp): el cliente recibe el aviso
+  if (nace === 'ACEPTADO') await avisarPedido(pedido.id, 'ACEPTADO');
 
   // Pago online: se arma el link de Mercado Pago. Si Mercado Pago no
   // responde, el pedido se da de baja en el acto (y el stock vuelve): no
@@ -882,6 +885,8 @@ export async function cambiarEstado(orderId: string, status: OrderStatus, motivo
       await encolarImpresion(o.id).catch((e) => console.error('Impresión', e));
     }
   }
+  // El aviso al cliente por WhatsApp, si el local lo tiene conectado (nunca hace fallar el cambio)
+  await avisarPedido(o.id, status);
 
   revalidatePath('/admin/pedidos');
   revalidatePath('/admin/cocina');

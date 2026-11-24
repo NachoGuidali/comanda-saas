@@ -44,6 +44,8 @@ type Props = {
   onCerrar?: () => void;
   /** Se llama solo cuando se guardó (onCerrar se llama también al cancelar) */
   onGuardado?: () => void;
+  /** Desde un chat de WhatsApp: el pedido llegó por ahí y ya se sabe quién es */
+  clienteInicial?: { nombre: string; telefono: string };
 };
 
 /**
@@ -54,13 +56,13 @@ type Props = {
  * También sirve para sumar a un pedido abierto: la segunda ronda de una mesa.
  */
 export default function NuevoPedidoMostrador({
-  branchId, categorias, zonas, mesas, agregarA, abiertoInicial = false, onCerrar, mesaFija, onGuardado,
+  branchId, categorias, zonas, mesas, agregarA, abiertoInicial = false, onCerrar, mesaFija, onGuardado, clienteInicial,
 }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(abiertoInicial);
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [tipo, setTipo] = useState<'DELIVERY' | 'TAKEAWAY' | 'SALON'>(mesaFija ? 'SALON' : 'TAKEAWAY');
-  const [canal, setCanal] = useState<'MOSTRADOR' | 'WHATSAPP'>('MOSTRADOR');
+  const [canal, setCanal] = useState<'MOSTRADOR' | 'WHATSAPP'>(clienteInicial ? 'WHATSAPP' : 'MOSTRADOR');
   const [zonaId, setZonaId] = useState(zonas[0]?.id ?? '');
   const [mesaId, setMesaId] = useState(mesaFija?.id ?? '');
   const [pago, setPago] = useState<FormaDePago>('EFECTIVO');
@@ -309,8 +311,8 @@ export default function NuevoPedidoMostrador({
                   ))}
                 </div>
 
-                <input name="customerName" className="input" placeholder="Nombre del cliente" />
-                <input name="customerPhone" className="input" placeholder="Teléfono" inputMode="tel" />
+                <input name="customerName" className="input" placeholder="Nombre del cliente" defaultValue={clienteInicial?.nombre} />
+                <input name="customerPhone" className="input" placeholder="Teléfono" inputMode="tel" defaultValue={clienteInicial?.telefono} />
 
                 {tipo === 'DELIVERY' && (
                   <>

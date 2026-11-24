@@ -15,6 +15,7 @@ export const FUNCIONES = [
   { id: 'insumos', label: 'Insumos y recetas', ayuda: 'Stock por kilo que se descuenta por receta' },
   { id: 'sueldos', label: 'Sueldos', ayuda: 'Personal, sueldos, adelantos y lo que falta pagar' },
   { id: 'pago_online', label: 'Pago online', ayuda: 'Cobro con Mercado Pago desde la carta, en la cuenta del local' },
+  { id: 'whatsapp', label: 'WhatsApp', ayuda: 'El WhatsApp del local conectado: bandeja de chats, avisos del pedido y bot' },
 ] as const;
 
 export type Funcion = (typeof FUNCIONES)[number]['id'];
@@ -28,6 +29,7 @@ export const SECCIONES_DE_FUNCION: Record<string, Funcion> = {
   '/admin/reservas': 'salon',
   '/admin/insumos': 'insumos',
   '/admin/gastos/sueldos': 'sueldos',
+  '/admin/whatsapp': 'whatsapp',
 };
 
 export type Limites = {

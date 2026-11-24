@@ -20,39 +20,48 @@ type Sucursal = { id: string; name: string; slug: string };
  * simple arriba, para no restarle ancho a la pantalla de cocina.
  */
 export default function NavAdmin({
-  secciones, marca, nombre, rol, sucursales, sucursalActiva, pendientesIniciales, menuLateral,
+  secciones, marca, nombre, rol, sucursales, sucursalActiva, pendientesIniciales, whatsappIniciales, menuLateral,
 }: {
   secciones: Seccion[];
   /** El nombre del local (la marca del cliente), arriba del menú */
   marca: string;
   nombre: string; rol: Role;
   sucursales: Sucursal[]; sucursalActiva: string; pendientesIniciales: number;
+  /** Chats de WhatsApp sin leer */
+  whatsappIniciales: number;
   /** Lo decide el layout, que también acomoda el contenido al costado */
   menuLateral: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendientes, setPendientes] = useState(pendientesIniciales);
+  const [whatsapp, setWhatsapp] = useState(whatsappIniciales);
   const [cambiando, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
 
   const simple = !menuLateral;
   const actual = secciones.find((s) => pathname === s.href || pathname.startsWith(`${s.href}/`));
   const verPedidos = secciones.some((s) => s.href === '/admin/pedidos');
+  const verWhatsapp = secciones.some((s) => s.href === '/admin/whatsapp');
 
   // Consulta liviana cada 15 segundos: alcanza para que nadie se pierda un pedido
   useEffect(() => {
-    if (!verPedidos) return;
+    if (!verPedidos && !verWhatsapp) return;
     const id = setInterval(async () => {
       try {
         const r = await fetch('/api/pedidos/contador', { cache: 'no-store' });
-        if (r.ok) setPendientes((await r.json()).pendientes);
+        if (r.ok) {
+          const d = await r.json();
+          setPendientes(d.pendientes);
+          setWhatsapp(d.whatsapp ?? 0);
+        }
       } catch { /* si se cae la red, seguimos con el último valor */ }
     }, 15000);
     return () => clearInterval(id);
-  }, [verPedidos]);
+  }, [verPedidos, verWhatsapp]);
 
   useEffect(() => { setPendientes(pendientesIniciales); }, [pendientesIniciales]);
+  useEffect(() => { setWhatsapp(whatsappIniciales); }, [whatsappIniciales]);
 
   // Al navegar, el panel del celular se cierra solo
   useEffect(() => { setAbierto(false); }, [pathname]);
@@ -73,6 +82,11 @@ export default function NavAdmin({
   const contador = pendientes > 0 && (
     <span className="ml-auto rounded-full bg-rojo px-1.5 py-0.5 text-[11px] font-bold leading-none text-sobre-rojo">
       {pendientes}
+    </span>
+  );
+  const contadorWhatsapp = whatsapp > 0 && (
+    <span className="ml-auto rounded-full bg-verde px-1.5 py-0.5 text-[11px] font-bold leading-none text-white" aria-label={`${whatsapp} chats sin leer`}>
+      {whatsapp}
     </span>
   );
 
@@ -115,6 +129,7 @@ export default function NavAdmin({
                 >
                   {s.label}
                   {s.href === '/admin/pedidos' && contador}
+                  {s.href === '/admin/whatsapp' && contadorWhatsapp}
                 </Link>
               );
             })}
@@ -156,6 +171,7 @@ export default function NavAdmin({
                   >
                     {s.label}
                     {s.href === '/admin/pedidos' && contador}
+                    {s.href === '/admin/whatsapp' && contadorWhatsapp}
                   </Link>
                 </li>
               );
@@ -203,6 +219,11 @@ export default function NavAdmin({
         {verPedidos && actual?.href !== '/admin/pedidos' && (
           <Link href="/admin/pedidos" className="flex items-center gap-1.5 rounded-lg bg-crema/10 px-2.5 py-1.5 text-sm">
             Pedidos{contador}
+          </Link>
+        )}
+        {verWhatsapp && whatsapp > 0 && actual?.href !== '/admin/whatsapp' && (
+          <Link href="/admin/whatsapp" className="flex items-center gap-1.5 rounded-lg bg-crema/10 px-2.5 py-1.5 text-sm">
+            WhatsApp{contadorWhatsapp}
           </Link>
         )}
       </header>

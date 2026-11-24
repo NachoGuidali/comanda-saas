@@ -35,6 +35,8 @@ export type PermisosTablero = {
   imprimir: boolean; asignar: boolean; repartir: boolean; cocina: boolean;
   /** Puede anotar que algo del pedido se perdió (salió mal, se quemó) */
   mermas: boolean;
+  /** El local tiene WhatsApp conectado y puede atenderlo: los links al cliente abren el chat en el sistema */
+  whatsapp?: boolean;
   userId: string;
 };
 

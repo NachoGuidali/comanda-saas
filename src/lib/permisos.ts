@@ -122,6 +122,13 @@ export const CATALOGO: GrupoPermisos[] = [
     ],
   },
   {
+    grupo: 'WhatsApp',
+    seccion: 'whatsapp',
+    permisos: [
+      { id: 'whatsapp.ver', label: 'Atender WhatsApp', ayuda: 'Ver los chats del local y contestar desde el sistema' },
+    ],
+  },
+  {
     grupo: 'Configuración',
     seccion: 'config',
     permisos: [
@@ -152,6 +159,7 @@ export const DEFAULTS: Record<Role, string[]> = {
     'mesas.ver', 'mesas.editar', 'reservas.ver', 'reservas.gestionar',
     'carta.ver', 'stock.ver', 'stock.mover', 'mermas.anotar',
     'insumos.ver', 'insumos.mover',
+    'whatsapp.ver',
   ],
   // Cocina no acepta pedidos ni los marca entregados: eso es plata y es de caja
   // La cocina anota lo que se quema o sale mal
@@ -238,6 +246,10 @@ export const CAMBIOS_PERMISOS: CambioPermisos[] = [
   {
     version: '2026-10-sueldos',
     agregar: { ADMIN: ['sueldos.ver', 'sueldos.pagar'] },
+  },
+  {
+    version: '2026-11-whatsapp',
+    agregar: { ADMIN: ['whatsapp.ver'], CAJERO: ['whatsapp.ver'] },
   },
 ];
 

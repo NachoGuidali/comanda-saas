@@ -9,6 +9,7 @@ import DisenoComanda from './DisenoComanda';
 import ConectarImpresora from './ConectarImpresora';
 import ImpresorasDelLocal, { type Impresora } from './ImpresorasDelLocal';
 import CobroOnline, { type DatosCobro } from './CobroOnline';
+import WhatsAppDelLocal, { type DatosWhatsApp } from './WhatsAppDelLocal';
 import { guardarZona, borrarZona } from '@/actions/catalog';
 import SubirImagen from './SubirImagen';
 
@@ -29,12 +30,12 @@ export type EjemploMitad = {
 type Zona = { id: string; name: string; fee: number; active: boolean };
 type Horario = { dayOfWeek: number; openTime: string; closeTime: string; closed: boolean };
 
-type Seccion = 'local' | 'horarios' | 'envios' | 'mitad' | 'cobro' | 'impresion';
+type Seccion = 'local' | 'horarios' | 'envios' | 'mitad' | 'cobro' | 'impresion' | 'whatsapp';
 
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export default function GestorConfig({
-  branch, zonas, horarios, puedeEditar, ejemploMitad, categorias, impresora, impresoras, imprimeCaja, cobro, seccionInicial = 'local',
+  branch, zonas, horarios, puedeEditar, ejemploMitad, categorias, impresora, impresoras, imprimeCaja, cobro, whatsapp, seccionInicial = 'local',
 }: {
   branch: Branch; zonas: Zona[]; horarios: Horario[]; puedeEditar: boolean;
   ejemploMitad: EjemploMitad; categorias: { id: string; name: string }[];
@@ -42,6 +43,7 @@ export default function GestorConfig({
   impresoras: Impresora[];
   imprimeCaja: boolean;
   cobro: DatosCobro;
+  whatsapp: DatosWhatsApp;
   seccionInicial?: Seccion;
 }) {
   const router = useRouter();
@@ -71,6 +73,7 @@ export default function GestorConfig({
           ['mitad', 'Mitad y mitad'],
           ['cobro', 'Cobro online'],
           ['impresion', 'Impresión y comandas'],
+          ['whatsapp', 'WhatsApp'],
         ] as const).map(([id, label]) => (
           <button key={id} onClick={() => setSeccion(id)} className={`chip ${seccion === id ? 'chip-activo' : ''}`}>
             {label}
@@ -82,6 +85,7 @@ export default function GestorConfig({
       {seccion === 'horarios' && <SeccionHorarios horarios={horarios} puedeEditar={puedeEditar} onGuardado={() => router.refresh()} />}
       {seccion === 'envios' && <SeccionZonas zonas={zonas} puedeEditar={puedeEditar} onGuardado={() => router.refresh()} />}
       {seccion === 'cobro' && <CobroOnline datos={cobro} />}
+      {seccion === 'whatsapp' && <WhatsAppDelLocal datos={whatsapp} puedeEditar={puedeEditar} />}
       {seccion === 'mitad' && <SeccionMitad modo={branch.precioMitad} ejemplo={ejemploMitad} puedeEditar={puedeEditar} onGuardado={() => router.refresh()} />}
       {seccion === 'impresion' && (
         <div className="space-y-6">

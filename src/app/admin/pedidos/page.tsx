@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { requireSession, puede } from '@/lib/session';
+import { requireSession, puede, tieneFuncion } from '@/lib/session';
 import { money } from '@/lib/money';
 import { inicioDelDia } from '@/lib/tiempo';
 import { catalogoMostrador } from '@/lib/catalogo-mostrador';
@@ -22,6 +22,8 @@ export default async function PedidosPage() {
     repartir: puede(s, 'pedidos.repartir'),
     cocina: puede(s, 'cocina.avanzar'),
     mermas: puede(s, 'mermas.anotar', 'stock.mover'),
+    whatsapp: puede(s, 'whatsapp.ver') && tieneFuncion(s, 'whatsapp')
+      && !!(await db.whatsAppLine.findUnique({ where: { branchId: s.branchId }, select: { id: true } })),
     userId: s.userId,
   };
   // El repartidor que no maneja el tablero completo ve solo lo que lleva

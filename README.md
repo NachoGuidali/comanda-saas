@@ -255,13 +255,47 @@ su clave secreta se pega en la misma pantalla.
 
 ### WhatsApp
 
-Al confirmar, el pedido ya entró al sistema y además se ofrece abrir WhatsApp con
-el mensaje armado. Es un enlace `wa.me`: no cuesta nada, no requiere aprobación
-de Meta y funciona desde el primer día. La contra es que el mensaje lo manda el
-cliente, así que no se pueden automatizar avisos de estado. Si más adelante
-quieren eso, hay que migrar a la API Cloud de WhatsApp, que necesita Meta
-Business verificado, un número dedicado y plantillas aprobadas, y se paga por
-conversación.
+Al confirmar un pedido desde la carta, se ofrece abrir WhatsApp con el mensaje
+armado (un enlace `wa.me`, que manda el cliente). Además, cada sucursal puede
+**conectar su número al sistema** (función `whatsapp` del plan):
+
+- **Conectar**: Configuración → WhatsApp → *Conectar*, y se escanea el QR
+  desde el celular del local (*Dispositivos vinculados*), como WhatsApp Web.
+  El celular sigue andando: lo que se contesta desde ahí también aparece en el
+  sistema. Un número por sucursal.
+- **Bandeja** (menú *WhatsApp*, permiso "Atender WhatsApp"): chats, fotos,
+  audios, documentos y ubicaciones; contestar con texto, archivos o nota de voz
+  grabada; respuestas rápidas; al lado, los pedidos de ese cliente y el botón
+  *Cargar pedido* con sus datos ya puestos. Suena y muestra el número de chats
+  sin leer en el menú. Desde la ficha de un pedido, *Abrir el chat*.
+- **Avisos del pedido**: al cliente le llega solo "recibimos tu pedido", "va en
+  camino", "listo para retirar" (y, si se prende, "rechazado"), con el link de
+  seguimiento. Los textos se editan. Si el número está desconectado, el aviso
+  espera (hasta 2 horas) y sale al reconectar.
+- **Bot** (se prende por local): saluda con el link de la carta (o avisa que
+  está cerrado), contesta "¿dónde está mi pedido?" con el estado real y, si el
+  cliente pide una persona, lo marca en la bandeja. Se calla solo en cuanto
+  alguien del local contesta en ese chat (desde el sistema o el celular). No
+  usa inteligencia artificial: dice lo que el local escribió.
+
+Por dentro lo hace [Evolution API](https://github.com/EvolutionAPI/evolution-api)
+(servicio `evolution` del `docker-compose`, perfil `whatsapp`), que vincula el
+número igual que WhatsApp Web, sin la aprobación de Meta. La contra: WhatsApp
+puede bloquear un número que manda mensajes masivos. El sistema solo contesta y
+avisa a quien pidió; no hay envíos masivos, a propósito.
+
+**Prenderlo en el servidor**: en el `.env`, `COMPOSE_PROFILES=whatsapp` y
+`EVOLUTION_API_KEY=` (`openssl rand -hex 32`), y `./deploy.sh` (crea la base
+`evolution` la primera vez). Después, en el panel de la plataforma, sumar
+"WhatsApp" a los planes que lo incluyan. Evolution usa unos 500-800 MB de RAM.
+Los avisos de Evolution llegan por la red interna de Docker, firmados con una
+clave por número; los archivos de los chats se guardan en la carpeta del
+cliente y solo se ven con sesión.
+
+**Probarlo sin celular**: `pruebas/evolution-falso.mjs` y
+`pruebas/e2e-whatsapp.mjs` (todo el circuito); `pruebas/e2e-whatsapp-real.mjs`
+contra un Evolution de verdad (crear, QR y borrar), para probar una versión
+nueva antes de cambiarla en el `docker-compose`.
 
 ### Impresión
 

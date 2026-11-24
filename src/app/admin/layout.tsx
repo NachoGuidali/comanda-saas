@@ -22,6 +22,7 @@ export const dynamic = 'force-dynamic';
  */
 const SECCIONES: Seccion[] = [
   { grupo: 'Día a día', href: '/admin/pedidos', label: 'Pedidos', seccion: 'pedidos' },
+  { grupo: 'Día a día', href: '/admin/whatsapp', label: 'WhatsApp', seccion: 'whatsapp' },
   { grupo: 'Día a día', href: '/admin/cocina', label: 'Cocina', seccion: 'cocina' },
   { grupo: 'Día a día', href: '/admin/caja', label: 'Caja', seccion: 'caja' },
   { grupo: 'Día a día', href: '/admin/mermas', label: 'Mermas', seccion: 'stock' },
@@ -50,6 +51,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const pendientes = session.esSuperadmin || session.permisos.includes('pedidos.ver')
     ? await db.order.count({ where: { branchId: session.branchId, status: 'PENDIENTE', esperandoPago: false } })
+    : 0;
+  const whatsapp = (session.esSuperadmin || session.permisos.includes('whatsapp.ver')) && session.funciones.includes('whatsapp')
+    ? await db.whatsAppChat.count({ where: { branchId: session.branchId, unread: { gt: 0 }, archived: false } })
     : 0;
 
   const vistas = seccionesVisibles(session.permisos);
@@ -95,6 +99,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         sucursales={session.sucursales}
         sucursalActiva={session.branchId}
         pendientesIniciales={pendientes}
+        whatsappIniciales={whatsapp}
         menuLateral={conMenuLateral}
       />
       <main className={`mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 ${conMenuLateral ? 'min-w-0 lg:flex-1' : ''}`}>

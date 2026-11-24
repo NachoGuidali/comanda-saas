@@ -34,6 +34,19 @@ if [ "${TABLAS:-0}" -gt 0 ]; then
   docker compose exec -T db pg_dump -U pizzeria pizzeria | gzip > "${ARCHIVO}"
 fi
 
+# WhatsApp (perfil "whatsapp" en COMPOSE_PROFILES): Evolution guarda las
+# sesiones en su propia base, que hay que crear la primera vez
+if grep -qE "^COMPOSE_PROFILES=.*whatsapp" .env; then
+  if ! grep -qE "^EVOLUTION_API_KEY=.+" .env; then
+    echo "Falta EVOLUTION_API_KEY en el .env (generala con: openssl rand -hex 32)."
+    exit 1
+  fi
+  if ! docker compose exec -T db psql -U pizzeria -d pizzeria -tAc "select 1 from pg_database where datname='evolution'" | grep -q 1; then
+    echo "==> Creando la base de WhatsApp"
+    docker compose exec -T db psql -U pizzeria -d pizzeria -c "create database evolution" >/dev/null
+  fi
+fi
+
 echo "==> Construyendo la aplicación"
 docker compose build app tools
 

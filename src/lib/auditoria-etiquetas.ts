@@ -7,6 +7,7 @@ export const ETIQUETA_ACCION: Record<string, string> = {
   credenciales: 'Cambió credenciales',
   marca: 'Cambió la marca',
   impresora: 'Impresoras',
+  whatsapp: 'WhatsApp',
   sucursal: 'Cambió una sucursal',
   cliente_alta: 'Alta de cliente',
   cliente_cambio: 'Cambió el cliente',
