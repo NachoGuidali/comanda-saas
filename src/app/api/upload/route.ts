@@ -44,7 +44,8 @@ export async function POST(req: Request) {
       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 })
       .toBuffer();
-  } catch {
+  } catch (e) {
+    console.error('Subida de imagen: no se pudo procesar', e);
     return NextResponse.json({ error: 'No pudimos procesar esa imagen' }, { status: 400 });
   }
 
@@ -54,7 +55,9 @@ export async function POST(req: Request) {
     const carpeta = carpetaDelCliente(session.tenantId);
     await mkdir(carpeta, { recursive: true });
     await writeFile(join(carpeta, nombre), optimizada);
-  } catch {
+  } catch (e) {
+    // Casi siempre es la carpeta de fotos sin permiso de escritura (ver el Dockerfile)
+    console.error('Subida de imagen: no se pudo guardar', e);
     return NextResponse.json({ error: 'No pudimos guardar la imagen en el servidor' }, { status: 500 });
   }
 

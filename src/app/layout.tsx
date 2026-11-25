@@ -67,6 +67,13 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 /**
+ * Todo se arma en cada pedido: la marca depende del dominio. Sin esto, Next
+ * arma la página 404 al compilar (sin dominio ni base) y en producción, al
+ * leer el dominio, revienta con un 500 en vez de mostrar el 404.
+ */
+export const dynamic = 'force-dynamic';
+
+/**
  * Cada cliente se ve con sus colores: el layout pone la paleta de su marca
  * como variables CSS y todo el sistema (carta, panel, cocina) las usa.
  * Un cliente suspendido ve un aviso en vez de la carta y el panel.

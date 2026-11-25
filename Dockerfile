@@ -18,6 +18,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate && npm run build
+# Las fotos van en un volumen, y lo crea el primer contenedor que lo monta:
+# si es este (deploy.sh corre "tools" antes que la app), tiene que quedar a
+# nombre del usuario de la app (1001), o la app no puede guardar fotos.
+RUN mkdir -p /app/data/uploads && chown -R 1001:1001 /app/data
 
 # ─── Produccion ───
 FROM node:22-alpine AS runner
